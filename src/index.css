@@ -16,3 +16,18 @@ body::-webkit-scrollbar {
   height: 0;
   background: transparent;      /* Chrome/Safari/Webkit */
 }
+
+@layer utilities {
+  @keyframes floatX {
+    0%, 100% {
+      transform: translateX(20rem) translateY(0);  /* translate-x-80 = 20rem */
+    }
+    50% {
+      transform: translateX(20rem) translateY(-10px);
+    }
+  }
+
+  .animate-float {
+    animation: floatX 4s ease-in-out infinite;
+  }
+}

@@ -61,7 +61,7 @@ export default function Home() {
         <img
           src={logoBranca}
           alt="Logo Central"
-          className="w-[800px] md:w-[800px] lg:w-[900px] transform translate-x-80 mt-40"
+          className="w-[800px] md:w-[800px] lg:w-[900px] transform translate-x-80 mt-40 animate-float"
         />
         {/* Intro */}
         
