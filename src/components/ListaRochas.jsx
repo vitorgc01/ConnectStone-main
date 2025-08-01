@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { db } from "../firebase";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import fundoImage from "../img/fundo.png";
 
 export default function ListaRochas() {
   const [rochas, setRochas] = useState([]);
@@ -37,7 +38,12 @@ export default function ListaRochas() {
   });
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-gray-100 px-4 py-8">
+    <div
+      className="min-h-screen bg-cover bg-center bg-no-repeat relative pt-20" // pt-16 é padding-top (64px)
+      style={{ backgroundImage: `url(${fundoImage})` }}
+    >
+      {/* Overlay branco transparente - pode remover ou ajustar opacidade */}
+      <div className="absolute inset-0 bg-white/10 pointer-events-none z-0" />
       <div className="max-w-5xl mx-auto">
         <h2 className="text-3xl font-semibold mb-6 text-center text-gray-800">Lista de Rochas</h2>
 

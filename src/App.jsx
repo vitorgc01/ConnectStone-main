@@ -9,6 +9,7 @@ import CadastroRocha from "./components/CadastroRocha";
 import CadastroEmpresa from "./components/CadastroEmpresa";
 import CadastroUsuario from "./components/CadastroUsuario";
 import Estoque from "./components/Pages/Estoque";
+import Vagas from "./components/Pages/Vagas";
 
 /** Rota que exige usuário logado (sem checar role) */
 function PrivateRoute({ children }) {
@@ -52,6 +53,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/lista" element={<ListaRochas />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/vagas" element={<Vagas />} />
 
           {/* Protegidas */}
           <Route
@@ -86,6 +88,7 @@ export default function App() {
               </EmpresaOuAdminRoute>
             }
           />
+          
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

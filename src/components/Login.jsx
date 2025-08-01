@@ -4,6 +4,7 @@ import { auth, db } from "../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
+import fundo from "../img/Sub.png"; // <- import direto da imagem
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -42,14 +43,17 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-56px)] bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8">
-        <h2 className="text-3xl font-semibold mb-6 text-gray-800 text-center">Entrar</h2>
+    <div
+      className="min-h-screen bg-cover bg-center flex items-center justify-center px-4"
+      style={{ backgroundImage: `url(${fundo})` }} // <- usando imagem importada
+    >
+      <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl max-w-md w-full p-8 border border-white/20">
+        <h2 className="text-3xl font-semibold mb-6 text-white text-center">Entrar</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           <input
             type="email"
-            placeholder="Email"
-            className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-300"
+            placeholder="Login"
+            className="w-full p-3 rounded-lg border border-white/30 bg-transparent text-white placeholder-white focus:ring-2 focus:ring-white outline-none"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -57,14 +61,14 @@ export default function Login() {
           <input
             type="password"
             placeholder="Senha"
-            className="w-full p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-300"
+            className="w-full p-3 rounded-lg border border-white/30 bg-transparent text-white placeholder-white focus:ring-2 focus:ring-white outline-none"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
             required
           />
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition"
+            className="w-full bg-white/20 text-white py-3 rounded-lg hover:bg-white/30 transition font-medium"
           >
             Entrar
           </button>
@@ -73,7 +77,7 @@ export default function Login() {
         {status && (
           <p
             className={`mt-4 text-sm text-center ${
-              statusType === "success" ? "text-green-600" : "text-red-600"
+              statusType === "success" ? "text-green-400" : "text-red-400"
             }`}
           >
             {status}
