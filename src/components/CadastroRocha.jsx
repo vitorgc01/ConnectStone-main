@@ -75,7 +75,13 @@ export default function CadastroRocha() {
 
       let fotoUrl = "";
       if (imagem) {
-        const imageRef = ref(storage, `rochas/${Date.now()}_${imagem.name}`);
+        // Sanitizar o nome do arquivo para evitar caracteres especiais
+        const safeName = imagem.name
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+          .replace(/\s+/g, "_"); // Troca espaços por underline
+
+        const imageRef = ref(storage, `rochas/${Date.now()}_${safeName}`);
         const snap = await uploadBytes(imageRef, imagem);
         fotoUrl = await getDownloadURL(snap.ref);
       }
@@ -124,6 +130,7 @@ export default function CadastroRocha() {
 
     setSalvando(false);
   };
+
 
   const handleImagemChange = (e) => {
     const file = e.target.files[0];
@@ -234,11 +241,10 @@ export default function CadastroRocha() {
 
         {status && (
           <p
-            className={`mt-4 text-sm text-center ${
-              statusType === "success"
+            className={`mt-4 text-sm text-center ${statusType === "success"
                 ? "text-green-600"
                 : "text-red-600"
-            }`}
+              }`}
           >
             {status}
           </p>

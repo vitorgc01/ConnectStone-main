@@ -1,10 +1,16 @@
-// src/components/ListaRochas.jsx
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
+import { useAuth } from "../components/context/AuthContext";
 import fundoImage from "../img/fundo.png";
 
 export default function ListaRochas() {
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
+  const isAdmin = profile?.role === "admin";
+  const isEmpresa = profile?.role === "empresa";
+
   const [rochas, setRochas] = useState([]);
   const [filtro, setFiltro] = useState("");
   const [empresaSelecionada, setEmpresaSelecionada] = useState(null);
@@ -39,21 +45,42 @@ export default function ListaRochas() {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center bg-no-repeat relative pt-20" // pt-16 é padding-top (64px)
+      className="min-h-screen bg-cover bg-center bg-no-repeat relative pt-24"
       style={{ backgroundImage: `url(${fundoImage})` }}
     >
-      {/* Overlay branco transparente - pode remover ou ajustar opacidade */}
       <div className="absolute inset-0 bg-white/10 pointer-events-none z-0" />
-      <div className="max-w-5xl mx-auto">
-        <h2 className="text-3xl font-semibold mb-6 text-center text-gray-800">Lista de Rochas</h2>
+      <div className="max-w-5xl mx-auto relative z-10 px-4">
+        <h2 className="text-3xl font-semibold mb-6 text-center text-gray-800">
+          Lista de Rochas
+        </h2>
 
-        <input
-          type="text"
-          placeholder="Pesquisar por nome, tipo ou empresa..."
-          value={filtro}
-          onChange={(e) => setFiltro(e.target.value)}
-          className="w-full p-3 mb-6 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-400"
-        />
+        <div className="relative w-full mb-6">
+          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </span>
+          <input
+            type="text"
+            placeholder="Pesquisar por nome, tipo ou empresa..."
+            value={filtro}
+            onChange={(e) => setFiltro(e.target.value)}
+            className="w-full pl-10 p-3 border border-gray-300 rounded-xl shadow-sm bg-white text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-500 transition"
+          />
+        </div>
+
+        {(isAdmin || isEmpresa) && (
+          <div className="flex justify mb-6">
+            <button
+              onClick={() => navigate("/cadastro-rocha")}
+              className="bg-gray-900 text-white px-6 py-2 rounded-lg hover:bg-black transition"
+            >
+              Cadastrar Rocha
+            </button>
+          </div>
+        )}
+
+        
 
         {rochasFiltradas.length === 0 ? (
           <p className="text-center text-gray-500">Nenhuma rocha encontrada.</p>
@@ -89,7 +116,9 @@ export default function ListaRochas() {
                 style={{ border: 0 }}
                 loading="lazy"
                 allowFullScreen
-                src={`https://www.google.com/maps?q=${encodeURIComponent(empresaSelecionada.endereco)}&output=embed`}
+                src={`https://www.google.com/maps?q=${encodeURIComponent(
+                  empresaSelecionada.endereco
+                )}&output=embed`}
               />
             </div>
           </div>

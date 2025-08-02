@@ -5,6 +5,8 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import fundo from "../img/Sub.png"; // <- import direto da imagem
+import logoAvantec from "../img/LogoAvantec.png";
+
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -48,7 +50,8 @@ export default function Login() {
       style={{ backgroundImage: `url(${fundo})` }}
     >
       <div className="bg-white/10 backdrop-blur-md rounded-2xl shadow-2xl max-w-md w-full p-8 border border-white/20">
-        <h2 className="text-3xl font-semibold mb-6 text-white text-center">Entrar</h2>
+      <img src={logoAvantec} alt="Logo" className="mx-auto mb-14 w-60" />
+        {/* <h2 className="text-3xl font-semibold mb-6 text-white text-center">Entrar</h2> */}
 
         <form onSubmit={handleSubmit} className="space-y-6">
 

@@ -10,6 +10,7 @@ import CadastroEmpresa from "./components/CadastroEmpresa";
 import CadastroUsuario from "./components/CadastroUsuario";
 import Estoque from "./components/Pages/Estoque";
 import Vagas from "./components/Pages/Vagas";
+import TesteUpload from "./teste";
 
 /** Rota que exige usuário logado (sem checar role) */
 function PrivateRoute({ children }) {
@@ -45,6 +46,7 @@ function EmpresaOuAdminRoute({ children }) {
 
 export default function App() {
   return (
+
     <AuthProvider>
       <BrowserRouter>
         <Navbar />
@@ -54,6 +56,8 @@ export default function App() {
           <Route path="/lista" element={<ListaRochas />} />
           <Route path="/login" element={<Login />} />
           <Route path="/vagas" element={<Vagas />} />
+          <Route path="/teste-upload" element={<TesteUpload />} />
+
 
           {/* Protegidas */}
           <Route
@@ -88,7 +92,6 @@ export default function App() {
               </EmpresaOuAdminRoute>
             }
           />
-          
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
