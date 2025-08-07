@@ -16,7 +16,11 @@ export function AuthProvider({ children }) {
       setUser(u);
       if (u) {
         const snap = await getDoc(doc(db, "usuarios", u.uid));
-        setProfile(snap.exists() ? snap.data() : null);
+        if (snap.exists()) {
+          setProfile({ id: u.uid, ...snap.data() });
+        } else {
+          setProfile(null);
+        }
       } else {
         setProfile(null);
       }
