@@ -1,5 +1,5 @@
 // src/components/CadastroRocha.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { db, storage } from "../firebase";
 import {
   collection,
@@ -7,9 +7,10 @@ import {
   getDoc,
   getDocs,
   doc,
-  runTransaction,
   query,
   where,
+  updateDoc,
+  increment,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuth } from "../components/context/AuthContext";
@@ -19,26 +20,42 @@ export default function CadastroRocha() {
   const isAdmin = profile?.role === "admin";
   const isEmpresa = profile?.role === "empresa";
 
+  // --------- STATE ----------
   const [empresas, setEmpresas] = useState([]);
   const [empresaId, setEmpresaId] = useState("");
   const [empresaNome, setEmpresaNome] = useState("");
+
   const [nome, setNome] = useState("");
   const [tipo, setTipo] = useState("");
   const [acabamento, setAcabamento] = useState("");
   const [entradaInicial, setEntradaInicial] = useState("");
+
   const [imagem, setImagem] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+
   const [status, setStatus] = useState("");
-  const [statusType, setStatusType] = useState("");
+  const [statusType, setStatusType] = useState(""); // "success" | "error" | ""
   const [salvando, setSalvando] = useState(false);
 
   const [rochasExistentes, setRochasExistentes] = useState([]);
-  const [usarRochaExistente, setUsarRochaExistente] = useState("");
+  const [usarRochaExistente, setUsarRochaExistente] = useState(""); // opcional
+  const [checandoDuplicata, setChecandoDuplicata] = useState(false);
+  const [existeDuplicata, setExisteDuplicata] = useState(false);
 
+  const debounceTimer = useRef(null);
+
+  // --------- HELPERS ----------
+  const normalize = (s) => (s || "").trim().toLowerCase();
+  const finalEmpresaId = useMemo(
+    () => (isEmpresa ? profile?.companyId : empresaId),
+    [isEmpresa, profile?.companyId, empresaId]
+  );
+
+  // --------- LOAD EMPRESAS ----------
   useEffect(() => {
     if (loading) return;
 
-    const load = async () => {
+    const loadEmpresas = async () => {
       try {
         if (isAdmin) {
           const snap = await getDocs(collection(db, "empresas"));
@@ -60,45 +77,66 @@ export default function CadastroRocha() {
       }
     };
 
-    load();
+    loadEmpresas();
   }, [loading, isAdmin, isEmpresa, profile]);
 
-  // Verifica se já existe uma rocha parecida
+  // --------- CHECAGEM DE DUPLICATA (apenas pelo nome) COM DEBOUNCE ----------
   useEffect(() => {
-    const buscarDuplicatas = async () => {
-      setRochasExistentes([]);
-      setUsarRochaExistente("");
-      if (!nome || !tipo || !acabamento || !empresaId) return;
+    // limpa resultados quando nome muda
+    setRochasExistentes([]);
+    setUsarRochaExistente("");
+    setExisteDuplicata(false);
 
-      const q = query(
-        collection(db, "rochas"),
-        where("empresaId", "==", empresaId),
-        where("nome", "==", nome.trim().toLowerCase()),
-        where("tipo", "==", tipo.trim().toLowerCase()),
-        where("acabamento", "==", acabamento.trim().toLowerCase())
-      );
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        setRochasExistentes(
-          snap.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }))
+    if (!finalEmpresaId) return;
+
+    // só consulta se tiver ao menos 2 chars (evita ruído)
+    const nomeNorm = normalize(nome);
+    if (nomeNorm.length < 2) {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      return;
+    }
+
+    setChecandoDuplicata(true);
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        const qDup = query(
+          collection(db, "rochas"),
+          where("empresaId", "==", finalEmpresaId),
+          where("nome", "==", nomeNorm)
         );
+        const snap = await getDocs(qDup);
+        if (!snap.empty) {
+          const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          setRochasExistentes(list);
+          setExisteDuplicata(true);
+        } else {
+          setRochasExistentes([]);
+          setExisteDuplicata(false);
+        }
+      } catch (err) {
+        console.error("Erro ao verificar duplicata:", err);
+        // não trata como erro fatal; apenas desliga o indicador
+      } finally {
+        setChecandoDuplicata(false);
       }
+    }, 350); // 350ms de debounce
+
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
+  }, [nome, finalEmpresaId]);
 
-    buscarDuplicatas();
-  }, [nome, tipo, acabamento, empresaId]);
-
+  // --------- SUBMIT ----------
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus("Salvando...");
+    setStatus("");
     setStatusType("");
     setSalvando(true);
 
     try {
-      const finalEmpresaId = isEmpresa ? profile?.companyId : empresaId;
+      // valida empresa
       if (!finalEmpresaId) {
         setStatus("Selecione a empresa (ou verifique seu vínculo).");
         setStatusType("error");
@@ -106,74 +144,159 @@ export default function CadastroRocha() {
         return;
       }
 
-      const nomeNorm = nome.trim().toLowerCase();
-      const tipoNorm = tipo.trim().toLowerCase();
-      const acabamentoNorm = acabamento.trim().toLowerCase();
+      const nomeNorm = normalize(nome);
+      const tipoNorm = normalize(tipo);
+      const acabamentoNorm = normalize(acabamento);
       const m2 = Number(entradaInicial || 0);
+
+      // checagem final de duplicata (servidor) — apenas por nome
+      try {
+        const qDup = query(
+          collection(db, "rochas"),
+          where("empresaId", "==", finalEmpresaId),
+          where("nome", "==", nomeNorm)
+        );
+        const snap = await getDocs(qDup);
+
+        // Se existe e usuário não escolheu usar a existente, bloqueia o cadastro
+        if (!snap.empty && !usarRochaExistente) {
+          setStatus("⚠️ Já existe uma rocha com esse nome nessa empresa.");
+          setStatusType("error");
+          setSalvando(false);
+          return;
+        }
+      } catch (verr) {
+        console.error("Erro ao validar duplicata no submit:", verr);
+        setStatus("Erro ao validar duplicata.");
+        setStatusType("error");
+        setSalvando(false);
+        return;
+      }
+
+      // UPLOAD DE IMAGEM (opcional)
       let fotoUrl = "";
-
-      if (usarRochaExistente) {
-        // Apenas adicionar ao estoque da rocha existente
-        const estoqueRef = collection(db, "rochas", usarRochaExistente, "estoque");
-        await addDoc(estoqueRef, {
-          tipo: "entrada",
-          m2,
-          obs: "Entrada adicional",
-          userId: user.uid,
-          criadoEm: new Date(),
-        });
-
-        const saldoRef = doc(db, "rochas", usarRochaExistente, "resumo", "saldo");
-        await runTransaction(db, async (tx) => {
-          const snap = await tx.get(saldoRef);
-          const atual = snap.exists() ? snap.data().m2 || 0 : 0;
-          tx.set(saldoRef, { m2: atual + m2 }, { merge: true });
-        });
-
-        setStatus("Estoque atualizado com sucesso!");
-        setStatusType("success");
-      } else {
-        // Criar nova rocha
-        if (imagem) {
+      if (imagem) {
+        try {
           const safeName = imagem.name
             .normalize("NFD")
             .replace(/[\u0300-\u036f]/g, "")
             .replace(/\s+/g, "_");
-
           const imageRef = ref(storage, `rochas/${Date.now()}_${safeName}`);
-          const snap = await uploadBytes(imageRef, imagem);
-          fotoUrl = await getDownloadURL(snap.ref);
+          const snapImg = await uploadBytes(imageRef, imagem);
+          fotoUrl = await getDownloadURL(snapImg.ref);
+        } catch (upErr) {
+          console.error("Erro no upload de imagem:", upErr);
+          setStatus("Erro ao enviar a imagem. Tente novamente.");
+          setStatusType("error");
+          setSalvando(false);
+          return;
+        }
+      }
+
+      // BRANCH 1: usar rocha existente → apenas incrementa estoqueM2 e registra movimentação
+      if (usarRochaExistente) {
+        try {
+          if (m2 > 0) {
+            const rochaDocRef = doc(db, "rochas", usarRochaExistente);
+            await updateDoc(rochaDocRef, {
+              estoqueM2: increment(m2),
+            });
+
+            if (user?.uid) {
+              await addDoc(
+                collection(db, "rochas", usarRochaExistente, "estoque"),
+                {
+                  tipo: "entrada",
+                  m2,
+                  obs: "Entrada adicional pelo cadastro",
+                  userId: user.uid,
+                  criadoEm: new Date(),
+                }
+              );
+            }
+          }
+
+          setStatus("Estoque atualizado na rocha existente!");
+          setStatusType("success");
+        } catch (updErr) {
+          console.error("Erro ao atualizar rocha existente:", updErr);
+          setStatus("Rocha existente encontrada, mas falhou ao atualizar estoque.");
+          setStatusType("error");
+        } finally {
+          setSalvando(false);
         }
 
-        const novaRocha = await addDoc(collection(db, "rochas"), {
+        // limpa campos e sai
+        if (isAdmin) setEmpresaId("");
+        setNome("");
+        setTipo("");
+        setAcabamento("");
+        setEntradaInicial("");
+        setImagem(null);
+        setPreviewUrl(null);
+        setUsarRochaExistente("");
+        setRochasExistentes([]);
+        setExisteDuplicata(false);
+        return;
+      }
+
+      // BRANCH 2: criar nova rocha
+      let novaRochaRef = null;
+      try {
+        novaRochaRef = await addDoc(collection(db, "rochas"), {
           empresaId: finalEmpresaId,
           nome: nomeNorm,
           tipo: tipoNorm,
           acabamento: acabamentoNorm,
           fotoUrl,
+          estoqueM2: m2,
           criadoEm: new Date(),
         });
-
-        if (m2 > 0 && user?.uid) {
-          await addDoc(collection(db, "rochas", novaRocha.id, "estoque"), {
-            tipo: "entrada",
-            m2,
-            obs: "Entrada inicial",
-            userId: user.uid,
-            criadoEm: new Date(),
-          });
-
-          const saldoDocRef = doc(db, "rochas", novaRocha.id, "resumo", "saldo");
-          await runTransaction(db, async (tx) => {
-            const snap = await tx.get(saldoDocRef);
-            const atual = snap.exists() ? snap.data().m2 || 0 : 0;
-            tx.set(saldoDocRef, { m2: atual + m2 }, { merge: true });
-          });
-        }
-
-        setStatus("Rocha cadastrada com sucesso!");
-        setStatusType("success");
+      } catch (createErr) {
+        console.error("Erro ao criar rocha:", createErr);
+        setStatus("Erro ao salvar rocha.");
+        setStatusType("error");
+        setSalvando(false);
+        return;
       }
+
+      // registra movimentação de entrada inicial (não é obrigatório para salvar a rocha)
+      if (m2 > 0 && user?.uid && novaRochaRef?.id) {
+        try {
+          await addDoc(
+            collection(db, "rochas", novaRochaRef.id, "movimentacoes"),
+            {
+              tipo: "entrada",
+              m2,
+              obs: "Entrada inicial",
+              userId: user.uid,
+              criadoEm: new Date(),
+            }
+          );
+        } catch (movErr) {
+          console.error("Rocha criada, mas falhou ao salvar movimentação:", movErr);
+          // Não marca como erro fatal, apenas avisa
+          setStatus("Rocha criada. Atenção: falhou ao salvar a movimentação inicial.");
+          setStatusType("error");
+          setSalvando(false);
+          // mesmo assim limpa campos
+          if (isAdmin) setEmpresaId("");
+          setNome("");
+          setTipo("");
+          setAcabamento("");
+          setEntradaInicial("");
+          setImagem(null);
+          setPreviewUrl(null);
+          setRochasExistentes([]);
+          setExisteDuplicata(false);
+          setUsarRochaExistente("");
+          return;
+        }
+      }
+
+      // sucesso total
+      setStatus("Rocha cadastrada com sucesso!");
+      setStatusType("success");
 
       // Limpar campos
       if (isAdmin) setEmpresaId("");
@@ -184,19 +307,21 @@ export default function CadastroRocha() {
       setImagem(null);
       setPreviewUrl(null);
       setRochasExistentes([]);
+      setExisteDuplicata(false);
       setUsarRochaExistente("");
+      setSalvando(false);
     } catch (err) {
-      console.error("Erro ao salvar:", err);
-      setStatus("Erro ao salvar rocha.");
+      console.error("Erro inesperado:", err);
+      setStatus("Erro inesperado ao salvar rocha.");
       setStatusType("error");
+      setSalvando(false);
     }
-
-    setSalvando(false);
   };
 
+  // --------- IMG PREVIEW ----------
   const handleImagemChange = (e) => {
     const file = e.target.files[0];
-    setImagem(file);
+    setImagem(file || null);
     if (file) {
       setPreviewUrl(URL.createObjectURL(file));
     } else {
@@ -204,6 +329,7 @@ export default function CadastroRocha() {
     }
   };
 
+  // --------- RENDER ----------
   if (loading) return <div className="p-6 text-gray-700">Carregando...</div>;
 
   if (isEmpresa && !profile?.companyId) {
@@ -220,6 +346,21 @@ export default function CadastroRocha() {
         <h2 className="text-3xl font-semibold mb-6 text-gray-800 text-center">
           Cadastro de Rocha
         </h2>
+
+        {/* Aviso de duplicata em tempo real */}
+        {finalEmpresaId && nome && (
+          <div
+            className={`mb-4 text-sm text-center ${
+              existeDuplicata ? "text-yellow-700" : "text-gray-500"
+            }`}
+          >
+            {checandoDuplicata
+              ? "Verificando nome..."
+              : existeDuplicata
+              ? "⚠️ Já existe uma rocha com esse nome nesta empresa."
+              : "Nome disponível."}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {isAdmin ? (
@@ -252,6 +393,7 @@ export default function CadastroRocha() {
             onChange={(e) => setNome(e.target.value)}
             required
           />
+
           <input
             className="w-full p-3 rounded-lg border border-gray-300"
             type="text"
@@ -260,6 +402,7 @@ export default function CadastroRocha() {
             onChange={(e) => setTipo(e.target.value)}
             required
           />
+
           <input
             className="w-full p-3 rounded-lg border border-gray-300"
             type="text"
@@ -269,19 +412,29 @@ export default function CadastroRocha() {
             required
           />
 
-          {rochasExistentes.length > 0 && (
-            <select
-              className="w-full p-3 rounded-lg border border-yellow-400 bg-yellow-50"
-              value={usarRochaExistente}
-              onChange={(e) => setUsarRochaExistente(e.target.value)}
-            >
-              <option value="">Criar nova rocha</option>
-              {rochasExistentes.map((r) => (
-                <option key={r.id} value={r.id}>
-                  Usar existente: {r.nome} - {r.tipo} - {r.acabamento}
-                </option>
-              ))}
-            </select>
+          {/* Se existir duplicata, permite selecionar a existente
+              (se você preferir apenas bloquear, pode remover este bloco) */}
+          {existeDuplicata && rochasExistentes.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm text-gray-700">
+                Já existe uma rocha com esse nome. Você pode criar uma nova mesmo
+                assim (bloqueado por padrão) ou selecionar a rocha existente para
+                adicionar estoque:
+              </label>
+              <select
+                className="w-full p-3 rounded-lg border border-yellow-400 bg-yellow-50"
+                value={usarRochaExistente}
+                onChange={(e) => setUsarRochaExistente(e.target.value)}
+              >
+                <option value="">(Criar nova rocha está bloqueado)</option>
+                {rochasExistentes.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    Usar existente: {r.nome}  • estoque:{" "}
+                    {typeof r.estoqueM2 === "number" ? r.estoqueM2 : 0} m²
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
 
           <input
@@ -295,6 +448,7 @@ export default function CadastroRocha() {
             required
           />
 
+          {/* Upload de imagem só quando não for usar existente */}
           {!usarRochaExistente && (
             <input
               type="file"
@@ -314,18 +468,26 @@ export default function CadastroRocha() {
 
           <button
             type="submit"
-            className="w-full bg-gray-900 text-white py-3 rounded-lg hover:bg-black transition"
-            disabled={salvando}
+            className="w-full bg-gray-900 text-white py-3 rounded-lg hover:bg-black transition disabled:opacity-60"
+            disabled={
+              salvando ||
+              checandoDuplicata ||
+              (!!existeDuplicata && !usarRochaExistente) // bloqueia criar nova se já existe e não selecionou usar existente
+            }
+            title={
+              !!existeDuplicata && !usarRochaExistente
+                ? "Já existe uma rocha com esse nome. Selecione a existente para adicionar estoque."
+                : ""
+            }
           >
-            {salvando ? "Salvando..." : "Salvar"}
+            {salvando ? "Salvando..." : usarRochaExistente ? "Adicionar ao estoque" : "Salvar"}
           </button>
         </form>
 
         {status && (
           <p
-            className={`mt-4 text-sm text-center ${statusType === "success"
-              ? "text-green-600"
-              : "text-red-600"
+            className={`mt-4 text-sm text-center ${
+              statusType === "success" ? "text-green-600" : "text-red-600"
             }`}
           >
             {status}
