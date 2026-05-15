@@ -1,6 +1,8 @@
 // src/App.jsx
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "./components/context/AuthContext"; // ajuste o caminho se seu AuthContext estiver em outro lugar
+
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./components/context/AuthContext";
+
 import Navbar from "./components/Navbar";
 import Home from "./components/Pages/Home";
 import Login from "./components/Login";
@@ -12,52 +14,87 @@ import Estoque from "./components/Pages/Estoque";
 import Vagas from "./components/Pages/Vagas";
 import TesteUpload from "./teste";
 
-/** Rota que exige usuário logado (sem checar role) */
+/** Rota que exige usuário logado */
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="p-6">Carregando...</div>;
+
+  if (loading) {
+    return <div className="p-6">Carregando...</div>;
+  }
+
   return user ? children : <Navigate to="/login" replace />;
 }
 
 /** Rota exclusiva de admin */
 function AdminRoute({ children }) {
   const { user, profile, loading } = useAuth();
-  if (loading) return <div className="p-6">Carregando...</div>;
 
-  // Aguarda o profile chegar do Firestore antes de decidir
-  if (user && profile == null) return <div className="p-6">Carregando perfil...</div>;
+  if (loading) {
+    return <div className="p-6">Carregando...</div>;
+  }
 
-  return user && profile?.role === "admin" ? children : <Navigate to="/" replace />;
+  // Aguarda o profile carregar
+  if (user && profile == null) {
+    return <div className="p-6">Carregando perfil...</div>;
+  }
+
+  return user && profile?.role === "admin"
+    ? children
+    : <Navigate to="/" replace />;
 }
 
 /** Rota para admin OU empresa */
 function EmpresaOuAdminRoute({ children }) {
   const { user, profile, loading } = useAuth();
-  if (loading) return <div className="p-6">Carregando...</div>;
 
-  // Aguarda o profile chegar do Firestore antes de decidir
-  if (user && profile == null) return <div className="p-6">Carregando perfil...</div>;
+  if (loading) {
+    return <div className="p-6">Carregando...</div>;
+  }
 
-  if (user && (profile?.role === "admin" || profile?.role === "empresa")) {
+  // Aguarda o profile carregar
+  if (user && profile == null) {
+    return <div className="p-6">Carregando perfil...</div>;
+  }
+
+  if (
+    user &&
+    (profile?.role === "admin" || profile?.role === "empresa")
+  ) {
     return children;
   }
+
   return <Navigate to="/" replace />;
 }
 
 export default function App() {
   return (
-
     <AuthProvider>
-      <BrowserRouter>
+      <HashRouter>
         <Navbar />
+
         <Routes>
           {/* Públicas */}
           <Route path="/" element={<Home />} />
-          <Route path="/lista" element={<ListaRochas />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/vagas" element={<Vagas />} />
-          <Route path="/teste-upload" element={<TesteUpload />} />
 
+          <Route
+            path="/lista"
+            element={<ListaRochas />}
+          />
+
+          <Route
+            path="/login"
+            element={<Login />}
+          />
+
+          <Route
+            path="/vagas"
+            element={<Vagas />}
+          />
+
+          <Route
+            path="/teste-upload"
+            element={<TesteUpload />}
+          />
 
           {/* Protegidas */}
           <Route
@@ -68,6 +105,7 @@ export default function App() {
               </EmpresaOuAdminRoute>
             }
           />
+
           <Route
             path="/cadastro-empresa"
             element={
@@ -76,6 +114,7 @@ export default function App() {
               </AdminRoute>
             }
           />
+
           <Route
             path="/cadastro-usuario"
             element={
@@ -84,6 +123,7 @@ export default function App() {
               </AdminRoute>
             }
           />
+
           <Route
             path="/estoque"
             element={
@@ -94,9 +134,12 @@ export default function App() {
           />
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route
+            path="*"
+            element={<Navigate to="/" replace />}
+          />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </AuthProvider>
   );
 }
