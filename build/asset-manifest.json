@@ -1,17 +1,17 @@
 {
   "files": {
     "main.css": "/vitorgc01/ConnectStone-main/static/css/main.b2592ea4.css",
-    "main.js": "/vitorgc01/ConnectStone-main/static/js/main.8bbfb746.js",
+    "main.js": "/vitorgc01/ConnectStone-main/static/js/main.4214edca.js",
     "static/media/Sub.png": "/vitorgc01/ConnectStone-main/static/media/Sub.498e738c5dc0a8d60868.png",
     "static/media/fundo.png": "/vitorgc01/ConnectStone-main/static/media/fundo.3848f99a7a804a8996f7.png",
     "static/media/logoBranca.png": "/vitorgc01/ConnectStone-main/static/media/logoBranca.7b11c420fdab5985f5e9.png",
     "static/media/LogoAvantec.png": "/vitorgc01/ConnectStone-main/static/media/LogoAvantec.5105be11667d7af33e66.png",
     "index.html": "/vitorgc01/ConnectStone-main/index.html",
     "main.b2592ea4.css.map": "/vitorgc01/ConnectStone-main/static/css/main.b2592ea4.css.map",
-    "main.8bbfb746.js.map": "/vitorgc01/ConnectStone-main/static/js/main.8bbfb746.js.map"
+    "main.4214edca.js.map": "/vitorgc01/ConnectStone-main/static/js/main.4214edca.js.map"
   },
   "entrypoints": [
     "static/css/main.b2592ea4.css",
-    "static/js/main.8bbfb746.js"
+    "static/js/main.4214edca.js"
   ]
 }
