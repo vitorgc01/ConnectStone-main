@@ -1,15 +1,11 @@
 {
   
-  "homepage": "https://github.com/vitorgc01/ConnectStone-main",
+  "homepage": "https://vitorgc01.github.io/ConnectStone-main",
 
   "name": "granito-app",
   
-  "predeploy": "npm run build",
-  "deploy": "gh-pages -d dist",  
-
   "version": "0.1.0",
   
-
 
   "private": true,
   
@@ -82,50 +78,22 @@
   
 
 
-  },
-  
-
-
-  "scripts": {
-  
-
-
+  },"scripts": {
     
-
-
   "start": "react-scripts start",
-  
-
-
-    
-
 
   "build": "react-scripts build",
-  
 
+  "predeploy": "npm run build",
 
-    
-
+  "deploy": "gh-pages -d build",
 
   "test": "react-scripts test",
-  
-
-
-    
-
 
   "eject": "react-scripts eject",
-  
-
-
-    
-
 
   "lint": "eslint \"src/**/*.{js,jsx,ts,tsx}\" --max-warnings=0"
-  
-
-
-  },
+ },
   
 
 

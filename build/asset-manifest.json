@@ -1,0 +1,17 @@
+{
+  "files": {
+    "main.css": "/ConnectStone-main/static/css/main.66076f35.css",
+    "main.js": "/ConnectStone-main/static/js/main.e926203c.js",
+    "static/media/Sub.png": "/ConnectStone-main/static/media/Sub.498e738c5dc0a8d60868.png",
+    "static/media/fundo.png": "/ConnectStone-main/static/media/fundo.3848f99a7a804a8996f7.png",
+    "static/media/logoBranca.png": "/ConnectStone-main/static/media/logoBranca.7b11c420fdab5985f5e9.png",
+    "static/media/LogoAvantec.png": "/ConnectStone-main/static/media/LogoAvantec.5105be11667d7af33e66.png",
+    "index.html": "/ConnectStone-main/index.html",
+    "main.66076f35.css.map": "/ConnectStone-main/static/css/main.66076f35.css.map",
+    "main.e926203c.js.map": "/ConnectStone-main/static/js/main.e926203c.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.66076f35.css",
+    "static/js/main.e926203c.js"
+  ]
+}
