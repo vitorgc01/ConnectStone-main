@@ -141,7 +141,7 @@ export default function Home() {
             className="text-white/60 text-base sm:text-lg max-w-xl leading-relaxed mb-10"
             style={{ fontFamily: "Inter, sans-serif", letterSpacing: "0.05em" }}
           >
-            O marketplace do setor de mármores e granitos.
+            O Ecossistema do setor de mármores e granitos.
             <br />
             Conecte fornecedores, compradores e profissionais.
           </p>
