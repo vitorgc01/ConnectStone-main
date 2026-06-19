@@ -69,7 +69,7 @@ function EmpresaOuAdminRoute({ children }) {
 export default function App() {
   return (
     <AuthProvider>
-      <HashRouter>
+      <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Navbar />
 
         <Routes>

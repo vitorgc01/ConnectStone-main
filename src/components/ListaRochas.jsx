@@ -569,7 +569,7 @@ function DetalheRocha({
         {/* Infos em grid */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <InfoBox label="Empresa" value={rocha.empresa?.nome || "—"} />
-          <InfoBox label="Estoque atual" value={`${rocha.m2 ?? 0} m²`} highlight />
+          <InfoBox label="Estoque atual" value={`${rocha.estoqueM2 ?? 0} m²`} highlight />
           {rocha.tipo && <InfoBox label="Tipo" value={rocha.tipo} />}
           {rocha.acabamento && <InfoBox label="Acabamento" value={rocha.acabamento} />}
         </div>

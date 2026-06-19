@@ -14,7 +14,7 @@ import {
   increment,
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { useAuth } from "../components/context/AuthContext";
+import { useAuth } from "./context/AuthContext";
 import fundoImage from "../img/fundo.png";
 
 // ── Ícones ───────────────────────────────────────────────────────────────────
@@ -100,7 +100,12 @@ function StyledInput({ onFocus, onBlur, ...props }) {
 function StyledSelect({ children, ...props }) {
   return (
     <select
-      style={{ ...inputStyle, cursor: "pointer" }}
+      style={{
+        ...inputStyle,
+        cursor: "pointer",
+        backgroundColor: "#111827",
+        color: "#ffffff",
+      }}
       onFocus={(e) => (e.target.style.borderColor = "rgba(201,169,110,0.5)")}
       onBlur={(e) => (e.target.style.borderColor = "rgba(255,255,255,0.1)")}
       {...props}
@@ -109,7 +114,6 @@ function StyledSelect({ children, ...props }) {
     </select>
   );
 }
-
 // ── Componente principal ─────────────────────────────────────────────────────
 export default function CadastroRocha() {
   const { user, profile, loading } = useAuth();
@@ -183,7 +187,7 @@ export default function CadastroRocha() {
     setExisteDuplicata(false);
 
     if (!finalEmpresaId) return;
-    const nomeNorm = normalize(nome);
+    const nomeNorm = nome.trim();
     if (nomeNorm.length < 2) {
       clearTimeout(debounceTimer.current);
       return;
@@ -243,7 +247,7 @@ export default function CadastroRocha() {
         return;
       }
 
-      const nomeNorm = normalize(nome);
+      const nomeNorm = nome.trim();
       const m2 = Number(entradaInicial || 0);
 
       // Checagem final de duplicata no servidor
@@ -305,10 +309,10 @@ export default function CadastroRocha() {
       // Salva no Firestore
       const novaRochaRef = await addDoc(collection(db, "rochas"), {
         nome: nomeNorm,
-        tipo: normalize(tipo),
-        acabamento: normalize(acabamento),
+        tipo: tipo.trim(),
+        acabamento: acabamento.trim(),
         empresaId: finalEmpresaId,
-        m2,
+        estoqueM2: m2,
         fotoUrl,
         criadoEm: new Date(),
         criadoPor: user?.uid || null,
@@ -318,9 +322,9 @@ export default function CadastroRocha() {
 
       // Movimentação inicial
       if (m2 > 0 && user?.uid) {
-        await addDoc(collection(db, "rochas", novaRochaRef.id, "movimentacoes"), {
+        await addDoc(collection(db, "rochas", novaRochaRef.id, "estoque"), {
           tipo: "entrada",
-          m2,
+          estoqueM2: m2,
           obs: "Entrada inicial",
           userId: user.uid,
           criadoEm: new Date(),
