@@ -12,6 +12,8 @@ import CadastroEmpresa from "./components/CadastroEmpresa";
 import CadastroUsuario from "./components/CadastroUsuario";
 import Estoque from "./components/Pages/Estoque";
 import Vagas from "./components/Pages/Vagas";
+import Empresas from "./components/Pages/Empresas";
+import EmpresaPerfil from "./components/Pages/EmpresaPerfil";
 import TesteUpload from "./teste";
 
 /** Rota que exige usuário logado */
@@ -89,6 +91,16 @@ export default function App() {
           <Route
             path="/vagas"
             element={<Vagas />}
+          />
+
+          <Route
+            path="/empresas"
+            element={<Empresas />}
+          />
+
+          <Route
+            path="/empresa/:id"
+            element={<EmpresaPerfil />}
           />
 
           <Route

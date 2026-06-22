@@ -13,12 +13,13 @@ export default function Navbar() {
 
   const navLinks = useMemo(
     () => [
-      { to: "/lista", label: "Rochas Ornamentais", show: true },
-      { to: "/servicos", label: "Serviços", show: true },
-      { to: "/arquitetos", label: "Arquitetos", show: true },
-      { to: "/construtoras", label: "Construtoras", show: true },
-      { to: "/transportadores", label: "Transportadores", show: true },
-      { to: "/vagas", label: "Vagas de Emprego", show: true },
+      { to: "/lista",         label: "Rochas Ornamentais", show: true },
+      { to: "/empresas",      label: "Empresas",           show: true },
+      { to: "/servicos",      label: "Serviços",           show: true },
+      { to: "/arquitetos",    label: "Arquitetos",         show: true },
+      { to: "/construtoras",  label: "Construtoras",       show: true },
+      { to: "/transportadores",label: "Transportadores",   show: true },
+      { to: "/vagas",         label: "Vagas de Emprego",   show: true },
     ],
     []
   );
