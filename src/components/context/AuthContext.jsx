@@ -1,35 +1,59 @@
-// src/context/AuthContext.jsx
+// src/components/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useState } from "react";
-import { auth, db } from "../../firebase";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { supabase } from "../../supabase";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user,    setUser]    = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Busca o perfil do usuário na tabela `usuarios`
+  const fetchProfile = async (userId) => {
+    const { data, error } = await supabase
+      .from("usuarios")
+      .select("*, empresas(id, nome, endereco, telefone, cnpj)")
+      .eq("id", userId)
+      .single();
+
+    if (error || !data) {
+      setProfile(null);
+    } else {
+      // Achata empresa para manter compatibilidade com o código existente
+      setProfile({
+        id:        data.id,
+        role:      data.role,
+        companyId: data.empresa_id,
+        empresa:   data.empresas ?? null,
+      });
+    }
+  };
+
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
+    // Sessão inicial
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const u = session?.user ?? null;
       setUser(u);
-      if (u) {
-        const snap = await getDoc(doc(db, "usuarios", u.uid));
-        if (snap.exists()) {
-          setProfile({ id: u.uid, ...snap.data() });
-        } else {
-          setProfile(null);
-        }
-      } else {
-        setProfile(null);
-      }
-      setLoading(false);
+      if (u) fetchProfile(u.id).finally(() => setLoading(false));
+      else    setLoading(false);
     });
-    return () => unsub();
+
+    // Listener de mudanças de auth
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        const u = session?.user ?? null;
+        setUser(u);
+        if (u) await fetchProfile(u.id);
+        else    setProfile(null);
+        setLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const logout = () => signOut(auth);
+  const logout = () => supabase.auth.signOut();
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, logout }}>

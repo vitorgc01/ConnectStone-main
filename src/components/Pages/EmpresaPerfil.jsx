@@ -1,33 +1,30 @@
 // src/components/Pages/EmpresaPerfil.jsx
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { db } from "../../firebase";
-import {
-  doc, getDoc, collection, getDocs,
-  query, where, orderBy,
-} from "firebase/firestore";
+import { supabase } from "../../supabase";
 import { useAuth } from "../context/AuthContext";
 import fundoImage from "../../img/fundo.png";
 
 // ── Ícones ────────────────────────────────────────────────────
-const IconBack    = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>);
-const IconPin     = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>);
-const IconPhone   = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.09a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92v2z"/></svg>);
-const IconMail    = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>);
-const IconBox     = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>);
+const IconBack      = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>);
+const IconPin       = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>);
+const IconPhone     = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 8.09a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92v2z"/></svg>);
+const IconMail      = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>);
+const IconBox       = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>);
 const IconBriefcase = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>);
-const IconClose   = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>);
-const IconTrash   = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>);
-const IconDoc     = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>);
+const IconClose     = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>);
+const IconTrash     = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>);
+const IconDoc       = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>);
+const IconSpinner   = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>);
 
 // ── Badge tipo de rocha ───────────────────────────────────────
 function TipoBadge({ tipo }) {
   const map = {
-    granito:   { bg:"rgba(120,53,15,0.4)",   color:"#fcd34d", border:"rgba(180,83,9,0.4)" },
-    mármore:   { bg:"rgba(30,41,59,0.6)",    color:"#cbd5e1", border:"rgba(71,85,105,0.4)" },
-    quartzito: { bg:"rgba(6,78,59,0.4)",     color:"#6ee7b7", border:"rgba(16,185,129,0.4)" },
-    travertino:{ bg:"rgba(124,45,18,0.4)",   color:"#fed7aa", border:"rgba(194,65,12,0.4)" },
-    basalto:   { bg:"rgba(39,39,42,0.6)",    color:"#d4d4d8", border:"rgba(82,82,91,0.4)" },
+    granito:    { bg:"rgba(120,53,15,0.4)",  color:"#fcd34d", border:"rgba(180,83,9,0.4)"   },
+    mármore:    { bg:"rgba(30,41,59,0.6)",   color:"#cbd5e1", border:"rgba(71,85,105,0.4)"  },
+    quartzito:  { bg:"rgba(6,78,59,0.4)",    color:"#6ee7b7", border:"rgba(16,185,129,0.4)" },
+    travertino: { bg:"rgba(124,45,18,0.4)",  color:"#fed7aa", border:"rgba(194,65,12,0.4)"  },
+    basalto:    { bg:"rgba(39,39,42,0.6)",   color:"#d4d4d8", border:"rgba(82,82,91,0.4)"   },
   };
   const s = map[(tipo || "").toLowerCase()] || { bg:"rgba(255,255,255,0.08)", color:"rgba(255,255,255,0.5)", border:"rgba(255,255,255,0.1)" };
   return (
@@ -39,7 +36,7 @@ function TipoBadge({ tipo }) {
 
 // ── Avatar com iniciais ───────────────────────────────────────
 function EmpresaAvatar({ nome, size = 72 }) {
-  const initials = (nome || "?").split(" ").slice(0,2).map(w => w[0]).join("").toUpperCase();
+  const initials = (nome || "?").split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase();
   return (
     <div style={{
       width:size, height:size, borderRadius:"1rem", flexShrink:0,
@@ -48,7 +45,9 @@ function EmpresaAvatar({ nome, size = 72 }) {
       display:"flex", alignItems:"center", justifyContent:"center",
       fontFamily:"Orbitron, sans-serif", fontWeight:700,
       fontSize:"1.4rem", color:"#C9A96E",
-    }}>{initials}</div>
+    }}>
+      {initials}
+    </div>
   );
 }
 
@@ -79,65 +78,75 @@ export default function EmpresaPerfil() {
   const isAdmin   = profile?.role === "admin";
   const isEmpresa = profile?.role === "empresa";
 
-  const [empresa, setEmpresa] = useState(null);
-  const [rochas,  setRochas]  = useState([]);
-  const [vagas,   setVagas]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [notFound,setNotFound]= useState(false);
+  const [empresa,  setEmpresa]  = useState(null);
+  const [rochas,   setRochas]   = useState([]);
+  const [vagas,    setVagas]    = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  // Detalhe de rocha (drawer)
-  const [rochaAberta,  setRochaAberta]  = useState(null);
-  const [drawerOpen,   setDrawerOpen]   = useState(false);
-  const [confirmDelete,setConfirmDelete]= useState(false);
+  // Drawer de detalhe de rocha
+  const [rochaAberta, setRochaAberta] = useState(null);
+  const [drawerOpen,  setDrawerOpen]  = useState(false);
 
+  // ── Carrega dados da empresa, rochas e vagas ──────────────
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        // Empresa
-        const empSnap = await getDoc(doc(db, "empresas", id));
-        if (!empSnap.exists()) { setNotFound(true); setLoading(false); return; }
-        setEmpresa({ id: empSnap.id, ...empSnap.data() });
+        // 1) Empresa
+        const { data: emp, error: empErr } = await supabase
+          .from("empresas")
+          .select("*")
+          .eq("id", id)
+          .single();
 
-        // Rochas da empresa
-        const rochasSnap = await getDocs(
-          query(collection(db, "rochas"), where("empresaId", "==", id))
-        );
-        setRochas(rochasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        if (empErr || !emp) { setNotFound(true); return; }
+        setEmpresa(emp);
 
-        // Vagas ativas da empresa
-        const vagasSnap = await getDocs(
-          query(
-            collection(db, "vagas"),
-            where("empresaId", "==", id),
-            where("ativa", "==", true),
-            orderBy("publicadaEm", "desc")
-          )
-        );
-        setVagas(vagasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        // 2) Rochas da empresa
+        const { data: rochasData } = await supabase
+          .from("rochas")
+          .select("*")
+          .eq("empresa_id", id)
+          .order("nome", { ascending: true });
+        setRochas(rochasData || []);
 
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
+        // 3) Vagas ativas da empresa
+        const { data: vagasData } = await supabase
+          .from("vagas")
+          .select("*")
+          .eq("empresa_id", id)
+          .eq("ativa", true)
+          .order("publicada_em", { ascending: false });
+        setVagas(vagasData || []);
+
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
     };
     load();
   }, [id]);
 
   const abrirRocha = (rocha) => {
-    setRochaAberta(rocha); setDrawerOpen(true); setConfirmDelete(false);
+    setRochaAberta(rocha);
+    setDrawerOpen(true);
   };
+
   const fecharRocha = () => {
     setDrawerOpen(false);
     setTimeout(() => setRochaAberta(null), 350);
   };
 
+  // Pode gerenciar se for admin ou a própria empresa
   const podeGerenciar = isAdmin || (isEmpresa && profile?.companyId === id);
 
-  // ── Guards ────────────────────────────────────────────────────
+  // ── Guards ────────────────────────────────────────────────
   if (loading) return (
     <div style={{ minHeight:"100vh", background:"#0A0A0A", display:"flex", alignItems:"center", justifyContent:"center" }}>
       <div style={{ display:"flex", gap:"0.5rem", alignItems:"center", color:"rgba(255,255,255,0.3)", fontSize:"0.875rem" }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="animate-spin"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>
-        Carregando empresa...
+        <IconSpinner /> Carregando empresa...
       </div>
     </div>
   );
@@ -145,12 +154,14 @@ export default function EmpresaPerfil() {
   if (notFound) return (
     <div style={{ minHeight:"100vh", background:"#0A0A0A", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:"1rem" }}>
       <p style={{ color:"rgba(255,255,255,0.4)", fontSize:"0.875rem" }}>Empresa não encontrada.</p>
-      <button onClick={() => navigate("/empresas")} style={{ color:"#C9A96E", fontSize:"0.75rem", background:"none", border:"none", cursor:"pointer", textDecoration:"underline" }}>
+      <button onClick={() => navigate("/empresas")}
+        style={{ color:"#C9A96E", fontSize:"0.75rem", background:"none", border:"none", cursor:"pointer", textDecoration:"underline" }}>
         ← Voltar às empresas
       </button>
     </div>
   );
 
+  // ── Render ────────────────────────────────────────────────
   return (
     <div style={{
       minHeight:"100vh", position:"relative",
@@ -164,25 +175,18 @@ export default function EmpresaPerfil() {
 
         {/* ── Voltar ── */}
         <button onClick={() => navigate("/empresas")}
-          style={{ display:"flex", alignItems:"center", gap:"0.5rem", color:"rgba(255,255,255,0.3)", background:"none", border:"none", cursor:"pointer", fontSize:"0.8rem", marginBottom:"2rem", transition:"color 0.2s" }}
+          style={{ display:"flex", alignItems:"center", gap:"0.5rem", color:"rgba(255,255,255,0.3)", background:"none", border:"none", cursor:"pointer", fontSize:"0.8rem", marginBottom:"2rem" }}
           onMouseEnter={e => (e.currentTarget.style.color = "rgba(255,255,255,0.7)")}
           onMouseLeave={e => (e.currentTarget.style.color = "rgba(255,255,255,0.3)")}>
           <IconBack /> Voltar às empresas
         </button>
 
         {/* ── Hero da empresa ── */}
-        <div style={{
-          borderRadius:"1.25rem", overflow:"hidden", marginBottom:"2.5rem",
-          background:"rgba(14,14,14,0.96)", border:"1px solid rgba(255,255,255,0.07)",
-          boxShadow:"0 24px 64px rgba(0,0,0,0.5)",
-        }}>
-          {/* Faixa dourada */}
+        <div style={{ borderRadius:"1.25rem", overflow:"hidden", marginBottom:"2.5rem", background:"rgba(14,14,14,0.96)", border:"1px solid rgba(255,255,255,0.07)", boxShadow:"0 24px 64px rgba(0,0,0,0.5)" }}>
           <div style={{ height:"4px", background:"linear-gradient(90deg,#C9A96E,#a07840,rgba(201,169,110,0.2))" }} />
-
           <div style={{ padding:"2rem" }}>
             <div style={{ display:"flex", alignItems:"flex-start", gap:"1.5rem", flexWrap:"wrap" }}>
               <EmpresaAvatar nome={empresa?.nome} size={72} />
-
               <div style={{ flex:1, minWidth:"200px" }}>
                 <p style={{ fontFamily:"Orbitron, sans-serif", fontSize:"0.6rem", letterSpacing:"0.3em", textTransform:"uppercase", color:"#C9A96E", marginBottom:"0.375rem" }}>
                   Empresa
@@ -190,22 +194,12 @@ export default function EmpresaPerfil() {
                 <h1 style={{ fontFamily:"Orbitron, sans-serif", fontSize:"1.6rem", fontWeight:700, color:"white", letterSpacing:"0.04em", marginBottom:"1rem" }}>
                   {empresa?.nome}
                 </h1>
-
-                {/* Dados de contato */}
                 <div style={{ display:"flex", flexWrap:"wrap", gap:"1.25rem" }}>
-                  {empresa?.endereco && (
-                    <InfoItem icon={<IconPin />} text={empresa.endereco} />
-                  )}
-                  {empresa?.telefone && (
-                    <InfoItem icon={<IconPhone />} text={empresa.telefone} />
-                  )}
-                  {empresa?.cnpj && (
-                    <InfoItem icon={<IconDoc />} text={`CNPJ: ${empresa.cnpj}`} />
-                  )}
+                  {empresa?.endereco && <InfoItem icon={<IconPin />}   text={empresa.endereco} />}
+                  {empresa?.telefone && <InfoItem icon={<IconPhone />} text={empresa.telefone} />}
+                  {empresa?.cnpj     && <InfoItem icon={<IconDoc />}   text={`CNPJ: ${empresa.cnpj}`} />}
                 </div>
               </div>
-
-              {/* Pills de contagem */}
               <div style={{ display:"flex", gap:"0.75rem", flexWrap:"wrap" }}>
                 <StatCard value={rochas.length} label="Rochas" icon={<IconBox />} />
                 <StatCard value={vagas.length}  label="Vagas"  icon={<IconBriefcase />} />
@@ -217,7 +211,6 @@ export default function EmpresaPerfil() {
         {/* ── Rochas ── */}
         <section style={{ marginBottom:"3rem" }}>
           <SectionTitle icon={<IconBox />} label="Catálogo de Rochas" count={rochas.length} />
-
           {rochas.length === 0 ? (
             <EmptyState text="Nenhuma rocha cadastrada por esta empresa." />
           ) : (
@@ -232,14 +225,17 @@ export default function EmpresaPerfil() {
         {/* ── Vagas ── */}
         <section style={{ marginBottom:"3rem" }}>
           <SectionTitle icon={<IconBriefcase />} label="Vagas de Emprego" count={vagas.length} />
-
           {vagas.length === 0 ? (
             <EmptyState text="Nenhuma vaga ativa no momento." />
           ) : (
             <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:"1rem" }}>
               {vagas.map(vaga => (
-                <VagaCard key={vaga.id} vaga={vaga} podeExcluir={podeGerenciar}
-                  onExcluir={() => setVagas(prev => prev.filter(v => v.id !== vaga.id))} />
+                <VagaCard
+                  key={vaga.id}
+                  vaga={vaga}
+                  podeExcluir={podeGerenciar}
+                  onExcluir={() => setVagas(prev => prev.filter(v => v.id !== vaga.id))}
+                />
               ))}
             </div>
           )}
@@ -249,14 +245,9 @@ export default function EmpresaPerfil() {
         {empresa?.endereco && (
           <section>
             <SectionTitle icon={<IconPin />} label="Localização" />
-            <div style={{
-              borderRadius:"1rem", overflow:"hidden",
-              border:"1px solid rgba(255,255,255,0.07)",
-              height:"360px",
-            }}>
+            <div style={{ borderRadius:"1rem", overflow:"hidden", border:"1px solid rgba(255,255,255,0.07)", height:"360px" }}>
               <iframe
-                title="mapa"
-                width="100%" height="100%"
+                title="mapa" width="100%" height="100%"
                 style={{ border:0, filter:"grayscale(70%) brightness(0.65)" }}
                 loading="lazy" allowFullScreen
                 src={`https://www.google.com/maps?q=${encodeURIComponent(empresa.endereco)}&output=embed`}
@@ -269,16 +260,18 @@ export default function EmpresaPerfil() {
         )}
       </div>
 
-      {/* ── Drawer detalhe da rocha ── */}
-      {/* Backdrop */}
-      <div onClick={fecharRocha} style={{
-        position:"fixed", inset:0, zIndex:40, transition:"all 0.35s",
-        background: drawerOpen ? "rgba(0,0,0,0.7)" : "transparent",
-        backdropFilter: drawerOpen ? "blur(4px)" : "none",
-        pointerEvents: drawerOpen ? "auto" : "none",
-      }} />
+      {/* ── Drawer — backdrop ── */}
+      <div
+        onClick={fecharRocha}
+        style={{
+          position:"fixed", inset:0, zIndex:40, transition:"all 0.35s",
+          background: drawerOpen ? "rgba(0,0,0,0.7)" : "transparent",
+          backdropFilter: drawerOpen ? "blur(4px)" : "none",
+          pointerEvents: drawerOpen ? "auto" : "none",
+        }}
+      />
 
-      {/* Painel */}
+      {/* ── Drawer — painel ── */}
       <div style={{
         position:"fixed", top:0, right:0, height:"100%", zIndex:50, overflowY:"auto",
         width:"min(520px,100vw)", background:"#0E0E0E",
@@ -287,12 +280,7 @@ export default function EmpresaPerfil() {
         transition:"transform 0.35s cubic-bezier(0.4,0,0.2,1)",
         boxShadow: drawerOpen ? "-20px 0 60px rgba(0,0,0,0.6)" : "none",
       }}>
-        {rochaAberta && (
-          <RochaDetalhe
-            rocha={rochaAberta}
-            onClose={fecharRocha}
-          />
-        )}
+        {rochaAberta && <RochaDetalhe rocha={rochaAberta} onClose={fecharRocha} />}
       </div>
     </div>
   );
@@ -302,7 +290,10 @@ export default function EmpresaPerfil() {
 function RochaCard({ rocha, onClick }) {
   const [hover, setHover] = useState(false);
   return (
-    <div onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
       style={{
         borderRadius:"0.875rem", overflow:"hidden", cursor:"pointer",
         background:"#111111",
@@ -310,12 +301,13 @@ function RochaCard({ rocha, onClick }) {
         transform: hover ? "translateY(-3px)" : "translateY(0)",
         boxShadow: hover ? "0 12px 40px rgba(0,0,0,0.5)" : "none",
         transition:"all 0.3s",
-      }}>
-      {/* Imagem */}
+      }}
+    >
+      {/* Foto */}
       <div style={{ height:"11rem", background:"rgba(255,255,255,0.04)", overflow:"hidden", position:"relative" }}>
-        {rocha.fotoUrl ? (
-          <img src={rocha.fotoUrl} alt={rocha.nome}
-            style={{ width:"100%", height:"100%", objectFit:"cover", transform: hover ? "scale(1.05)" : "scale(1)", transition:"transform 0.5s" }} />
+        {rocha.foto_url ? (
+          <img src={rocha.foto_url} alt={rocha.nome}
+            style={{ width:"100%", height:"100%", objectFit:"cover", transform: hover?"scale(1.05)":"scale(1)", transition:"transform 0.5s" }} />
         ) : (
           <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center" }}>
             <span style={{ fontSize:"3rem", color:"rgba(255,255,255,0.06)" }}>◈</span>
@@ -326,30 +318,21 @@ function RochaCard({ rocha, onClick }) {
             <TipoBadge tipo={rocha.tipo} />
           </div>
         )}
-        <div style={{
-          position:"absolute", top:"0.75rem", right:"0.75rem",
-          padding:"0.125rem 0.5rem", borderRadius:"0.375rem", fontSize:"0.7rem",
-          background:"rgba(0,0,0,0.65)", border:"1px solid rgba(255,255,255,0.1)", color:"rgba(255,255,255,0.7)",
-        }}>
-          {rocha.estoqueM2 ?? 0} m²
+        {/* Badge de estoque — campo padronizado: estoque_m2 */}
+        <div style={{ position:"absolute", top:"0.75rem", right:"0.75rem", padding:"0.125rem 0.5rem", borderRadius:"0.375rem", fontSize:"0.7rem", background:"rgba(0,0,0,0.65)", border:"1px solid rgba(255,255,255,0.1)", color:"rgba(255,255,255,0.7)" }}>
+          {rocha.estoque_m2 ?? 0} m²
         </div>
       </div>
 
+      {/* Info */}
       <div style={{ padding:"1rem" }}>
-        <h3 style={{
-          fontFamily:"Orbitron, sans-serif", fontSize:"0.78rem", fontWeight:700,
-          letterSpacing:"0.04em", color: hover ? "#C9A96E" : "white",
-          transition:"color 0.3s", marginBottom:"0.25rem",
-          overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap",
-        }}>
+        <h3 style={{ fontFamily:"Orbitron, sans-serif", fontSize:"0.78rem", fontWeight:700, letterSpacing:"0.04em", color: hover?"#C9A96E":"white", transition:"color 0.3s", marginBottom:"0.25rem", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
           {rocha.nome}
         </h3>
         {rocha.acabamento && (
-          <p style={{ fontSize:"0.72rem", color:"rgba(255,255,255,0.3)" }}>
-            {rocha.acabamento}
-          </p>
+          <p style={{ fontSize:"0.72rem", color:"rgba(255,255,255,0.3)" }}>{rocha.acabamento}</p>
         )}
-        <div style={{ marginTop:"0.875rem", display:"flex", alignItems:"center", gap:"0.25rem", fontSize:"0.65rem", letterSpacing:"0.1em", textTransform:"uppercase", color: hover ? "#C9A96E" : "rgba(255,255,255,0.2)", transition:"color 0.3s" }}>
+        <div style={{ marginTop:"0.875rem", display:"flex", alignItems:"center", gap:"0.25rem", fontSize:"0.65rem", letterSpacing:"0.1em", textTransform:"uppercase", color: hover?"#C9A96E":"rgba(255,255,255,0.2)", transition:"color 0.3s" }}>
           Ver detalhes
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round"/></svg>
         </div>
@@ -358,8 +341,14 @@ function RochaCard({ rocha, onClick }) {
   );
 }
 
-// ── Detalhe da rocha no drawer ────────────────────────────────
+// ── Detalhe no drawer ─────────────────────────────────────────
 function RochaDetalhe({ rocha, onClose }) {
+  // Formata data vinda do Supabase (string ISO)
+  const fmtData = (val) => {
+    if (!val) return "—";
+    return new Date(val).toLocaleDateString("pt-BR");
+  };
+
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%" }}>
       {/* Header */}
@@ -375,10 +364,10 @@ function RochaDetalhe({ rocha, onClose }) {
         </button>
       </div>
 
-      {/* Imagem */}
+      {/* Foto */}
       <div style={{ position:"relative", height:"280px", background:"#0A0A0A", flexShrink:0 }}>
-        {rocha.fotoUrl ? (
-          <img src={rocha.fotoUrl} alt={rocha.nome} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+        {rocha.foto_url ? (
+          <img src={rocha.foto_url} alt={rocha.nome} style={{ width:"100%", height:"100%", objectFit:"cover" }} />
         ) : (
           <div style={{ width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center" }}>
             <span style={{ fontSize:"6rem", color:"rgba(255,255,255,0.04)" }}>◈</span>
@@ -389,13 +378,12 @@ function RochaDetalhe({ rocha, onClose }) {
 
       {/* Conteúdo */}
       <div style={{ padding:"1.5rem", flex:1 }}>
-        {/* Nome */}
         <h2 style={{ fontFamily:"Orbitron, sans-serif", fontSize:"1.4rem", fontWeight:700, color:"white", letterSpacing:"0.04em", marginBottom:"0.75rem" }}>
           {rocha.nome}
         </h2>
 
         <div style={{ display:"flex", gap:"0.5rem", flexWrap:"wrap", marginBottom:"1.5rem" }}>
-          {rocha.tipo      && <TipoBadge tipo={rocha.tipo} />}
+          {rocha.tipo && <TipoBadge tipo={rocha.tipo} />}
           {rocha.acabamento && (
             <span style={{ padding:"0.125rem 0.625rem", borderRadius:"9999px", fontSize:"0.7rem", background:"rgba(255,255,255,0.07)", color:"rgba(255,255,255,0.5)", border:"1px solid rgba(255,255,255,0.1)" }}>
               {rocha.acabamento}
@@ -405,14 +393,12 @@ function RochaDetalhe({ rocha, onClose }) {
 
         <div style={{ height:"1px", background:"rgba(255,255,255,0.06)", marginBottom:"1.5rem" }} />
 
-        {/* Grid de infos */}
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0.75rem", marginBottom:"1.5rem" }}>
-          <InfoBox label="Tipo"      value={rocha.tipo       || "—"} />
-          <InfoBox label="Estoque"   value={`${rocha.estoqueM2 ?? 0} m²`} highlight />
-          <InfoBox label="Acabamento"value={rocha.acabamento  || "—"} />
-          <InfoBox label="Cadastrado"value={rocha.criadoEm?.toDate
-            ? rocha.criadoEm.toDate().toLocaleDateString("pt-BR")
-            : "—"} />
+        {/* Grid de infos — campos snake_case do Supabase */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"0.75rem" }}>
+          <InfoBox label="Tipo"       value={rocha.tipo        || "—"} />
+          <InfoBox label="Estoque"    value={`${rocha.estoque_m2 ?? 0} m²`} highlight />
+          <InfoBox label="Acabamento" value={rocha.acabamento   || "—"} />
+          <InfoBox label="Cadastrado" value={fmtData(rocha.criado_em)} />
         </div>
       </div>
     </div>
@@ -422,12 +408,13 @@ function RochaDetalhe({ rocha, onClose }) {
 // ── Card de vaga ──────────────────────────────────────────────
 function VagaCard({ vaga, podeExcluir, onExcluir }) {
   const [confirm, setConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const excluir = async () => {
-    const { deleteDoc, doc } = await import("firebase/firestore");
-    const { db } = await import("../../firebase");
-    await deleteDoc(doc(db, "vagas", vaga.id));
-    onExcluir();
+    setLoading(true);
+    const { error } = await supabase.from("vagas").delete().eq("id", vaga.id);
+    setLoading(false);
+    if (!error) onExcluir();
   };
 
   return (
@@ -441,15 +428,16 @@ function VagaCard({ vaga, podeExcluir, onExcluir }) {
         </button>
       )}
 
+      {/* campos snake_case: cargo, descricao, contato_email */}
       <h3 style={{ fontWeight:700, color:"rgba(255,255,255,0.9)", fontSize:"0.9rem", marginBottom:"0.25rem", paddingRight:"2rem" }}>
         {vaga.cargo}
       </h3>
       <p style={{ color:"rgba(255,255,255,0.5)", fontSize:"0.8rem", marginBottom:"0.75rem" }}>
         {vaga.descricao}
       </p>
-      <a href={`mailto:${vaga.contatoEmail}`}
+      <a href={`mailto:${vaga.contato_email}`}
         style={{ display:"flex", alignItems:"center", gap:"0.375rem", fontSize:"0.78rem", color:"#C9A96E", textDecoration:"none" }}>
-        <IconMail /> {vaga.contatoEmail}
+        <IconMail /> {vaga.contato_email}
       </a>
 
       {confirm && (
@@ -460,9 +448,9 @@ function VagaCard({ vaga, podeExcluir, onExcluir }) {
               style={{ flex:1, padding:"0.375rem", borderRadius:"0.5rem", fontSize:"0.75rem", color:"rgba(255,255,255,0.4)", background:"none", border:"1px solid rgba(255,255,255,0.1)", cursor:"pointer" }}>
               Cancelar
             </button>
-            <button onClick={excluir}
-              style={{ flex:1, padding:"0.375rem", borderRadius:"0.5rem", fontSize:"0.75rem", color:"white", background:"#dc2626", border:"none", cursor:"pointer" }}>
-              Confirmar
+            <button onClick={excluir} disabled={loading}
+              style={{ flex:1, padding:"0.375rem", borderRadius:"0.5rem", fontSize:"0.75rem", color:"white", background:"#dc2626", border:"none", cursor:"pointer", opacity: loading ? 0.6 : 1 }}>
+              {loading ? "Excluindo..." : "Confirmar"}
             </button>
           </div>
         </div>
@@ -493,11 +481,11 @@ function StatCard({ value, label, icon }) {
 
 function InfoBox({ label, value, highlight }) {
   return (
-    <div style={{ borderRadius:"0.75rem", padding:"0.875rem", background: highlight ? "rgba(201,169,110,0.06)" : "rgba(255,255,255,0.03)", border: `1px solid ${highlight ? "rgba(201,169,110,0.15)" : "rgba(255,255,255,0.06)"}` }}>
+    <div style={{ borderRadius:"0.75rem", padding:"0.875rem", background: highlight?"rgba(201,169,110,0.06)":"rgba(255,255,255,0.03)", border:`1px solid ${highlight?"rgba(201,169,110,0.15)":"rgba(255,255,255,0.06)"}` }}>
       <p style={{ fontFamily:"Orbitron, sans-serif", fontSize:"0.55rem", letterSpacing:"0.15em", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", marginBottom:"0.25rem" }}>
         {label}
       </p>
-      <p style={{ fontSize:"0.875rem", fontWeight:600, color: highlight ? "#C9A96E" : "rgba(255,255,255,0.85)" }}>
+      <p style={{ fontSize:"0.875rem", fontWeight:600, color: highlight?"#C9A96E":"rgba(255,255,255,0.85)" }}>
         {value}
       </p>
     </div>
