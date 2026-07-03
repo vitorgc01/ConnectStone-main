@@ -1,8 +1,7 @@
 // src/components/Pages/Home.jsx
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { db } from "../../firebase";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { supabase } from "../../supabase";
 import { useAuth } from "../context/AuthContext";
 import fundoImage from "../../img/fundo.png";
 import logoBranca from "../../img/logoBranca.png";
@@ -96,10 +95,11 @@ export default function Home() {
   useEffect(() => {
     const load = async () => {
       try {
-        const snap = await getDocs(
-          query(collection(db, "avisos"), orderBy("publicadoEm", "desc"))
-        );
-        setAvisos(snap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) })));
+        const { data } = await supabase
+          .from("avisos")
+          .select("*")
+          .order("publicado_em", { ascending: false });
+        setAvisos(data || []);
       } catch {
         setAvisos([]);
       }
@@ -141,7 +141,7 @@ export default function Home() {
             className="text-white/60 text-base sm:text-lg max-w-xl leading-relaxed mb-10"
             style={{ fontFamily: "Inter, sans-serif", letterSpacing: "0.05em" }}
           >
-            O Ecossistema do setor de mármores e granitos.
+            O marketplace do setor de mármores e granitos.
             <br />
             Conecte fornecedores, compradores e profissionais.
           </p>

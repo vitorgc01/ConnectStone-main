@@ -2,12 +2,12 @@
 // npm install @supabase/supabase-js
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const SUPABASE_URL  = process.env.REACT_APP_SUPABASE_URL;
+const SUPABASE_ANON = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_ANON) {
   throw new Error(
-    "Variáveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY não configuradas."
+    "Variáveis de ambiente REACT_APP_SUPABASE_URL e REACT_APP_SUPABASE_ANON_KEY não configuradas."
   );
 }
 

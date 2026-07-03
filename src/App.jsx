@@ -14,7 +14,7 @@ import Estoque from "./components/Pages/Estoque";
 import Vagas from "./components/Pages/Vagas";
 import Empresas from "./components/Pages/Empresas";
 import EmpresaPerfil from "./components/Pages/EmpresaPerfil";
-import TesteUpload from "./teste";
+// import TesteUpload from "./teste";
 
 /** Rota que exige usuário logado */
 function PrivateRoute({ children }) {
@@ -103,10 +103,10 @@ export default function App() {
             element={<EmpresaPerfil />}
           />
 
-          <Route
+          {/* <Route
             path="/teste-upload"
             element={<TesteUpload />}
-          />
+          /> */}
 
           {/* Protegidas */}
           <Route

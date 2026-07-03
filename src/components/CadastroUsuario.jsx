@@ -1,9 +1,7 @@
 // src/components/CadastroUsuario.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, db } from "../firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { collection, getDocs, doc, setDoc } from "firebase/firestore";
+import { supabase } from "../supabase";
 import fundoImage from "../img/fundo.png";
 
 // ── Ícones ────────────────────────────────────────────────────────────────────
@@ -265,8 +263,8 @@ export default function CadastroUsuario() {
   useEffect(() => {
     const carregar = async () => {
       try {
-        const snap = await getDocs(collection(db, "empresas"));
-        setEmpresas(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+        const { data } = await supabase.from("empresas").select("id, nome, endereco").order("nome");
+        setEmpresas(data || []);
       } catch {
         setEmpresas([]);
       } finally {
@@ -309,13 +307,17 @@ export default function CadastroUsuario() {
     setSalvando(true);
 
     try {
-      // 1) Cria o usuário no Firebase Auth
-      const cred = await createUserWithEmailAndPassword(auth, email, senha);
-      const uid = cred.user.uid;
+      // 1) Cria o usuário no Supabase Auth
+      const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password: senha });
+      if (authErr) throw authErr;
+      const uid = authData.user.id;
 
-      // 2) Salva perfil no Firestore
-      const payload = role === "empresa" ? { role, companyId } : { role };
-      await setDoc(doc(db, "usuarios", uid), payload);
+      // 2) Salva perfil na tabela usuarios
+      const payload = role === "empresa"
+        ? { id: uid, role, empresa_id: companyId }
+        : { id: uid, role };
+      const { error: profErr } = await supabase.from("usuarios").insert(payload);
+      if (profErr) throw profErr;
 
       // Encontra nome da empresa para exibir no sucesso
       if (role === "empresa") {
@@ -334,9 +336,9 @@ export default function CadastroUsuario() {
       setRole("empresa"); setCompanyId("");
     } catch (err) {
       let msg = "Erro ao criar usuário.";
-      if (err.code === "auth/email-already-in-use") msg = "Este e-mail já está em uso.";
-      else if (err.code === "auth/invalid-email") msg = "E-mail inválido.";
-      else if (err.code === "auth/weak-password") msg = "Senha muito fraca (mín. 6 caracteres).";
+      if (err.message?.includes("already registered")) msg = "Este e-mail já está em uso.";
+      else if (err.message?.includes("invalid")) msg = "E-mail inválido.";
+      else if (err.message?.includes("weak") || err.message?.includes("password")) msg = "Senha muito fraca (mín. 6 caracteres).";
       setStatus(msg);
       setStatusType("error");
     } finally {
