@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../components/context/AuthContext";
 import logo from "../img/LogoAvantec.png";
 
@@ -33,20 +33,19 @@ export default function Navbar() {
       isActive ? "after:scale-x-100" : "",
     ].join(" ");
 
-
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-black/10 backdrop-blur font-navbar">
-      <div className="flex h-20 items-center px-4 justify-between">
+      <div className="max-w-7xl mx-auto flex h-20 items-center px-4 md:px-8 justify-between w-full">
+        
         {/* ESQUERDA - HOME */}
-        <div className="flex-1">
+        <div className="flex-shrink-0">
           <NavLink to="/" className={linkClass}>
             Home
           </NavLink>
         </div>
 
         {/* CENTRO - LINKS */}
-        <div className="hidden md:flex flex-grow gap-6 items-center justify-center min-w-max">
-
+        <div className="hidden md:flex flex-1 justify-center gap-4 lg:gap-6 items-center min-w-0">
           {navLinks
             .filter((l) => l.show)
             .map((link) => (
@@ -56,13 +55,12 @@ export default function Navbar() {
             ))}
         </div>
 
-        {/* DIREITA - LOGO + LOGIN/SAIR */}
-        <div className="flex items-center justify-end flex-1 space-x-4 pr-4">
-          {/* <img src={logo} alt="Logo" className="h-32 w-auto object-contain" /> */}
+        {/* DIREITA - BOTÃO ENTRAR / SAIR */}
+        <div className="flex items-center justify-end flex-shrink-0 space-x-4">
           {!user ? (
             <button
               onClick={() => navigate("/login")}
-              className="border hover:text-gray-300 text-white font-semibold py-2 px-4 rounded"
+              className="border border-white/70 hover:bg-white hover:text-black text-white font-semibold py-2 px-5 rounded transition-all whitespace-nowrap"
             >
               Entrar
             </button>
@@ -72,7 +70,7 @@ export default function Navbar() {
                 await logout();
                 navigate("/");
               }}
-              className="rounded-lg border border-gray-500 bg-transparent px-4 py-2 text-sm text-gray-200 hover:bg-gray-800 transition"
+              className="rounded-lg border border-gray-500 bg-transparent px-5 py-2 text-sm text-gray-200 hover:bg-gray-800 transition whitespace-nowrap"
             >
               Sair
             </button>
@@ -81,7 +79,7 @@ export default function Navbar() {
 
         {/* BOTÃO MOBILE */}
         <button
-          className="md:hidden inline-flex items-center justify-center rounded-md border border-gray-600 p-2 text-gray-200 hover:bg-gray-800"
+          className="md:hidden ml-4 inline-flex items-center justify-center rounded-md border border-gray-600 p-2 text-gray-200 hover:bg-gray-800"
           onClick={() => setOpen((v) => !v)}
           aria-label="Abrir menu"
         >
@@ -97,7 +95,5 @@ export default function Navbar() {
         </button>
       </div>
     </header>
-
-
   );
 }

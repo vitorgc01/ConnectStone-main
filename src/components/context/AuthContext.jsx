@@ -9,8 +9,9 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Busca o perfil do usuário na tabela `usuarios`
   const fetchProfile = async (userId) => {
+    if (!userId) return;
+    
     const { data, error } = await supabase
       .from("usuarios")
       .select("*, empresas(id, nome, endereco, telefone, cnpj)")
@@ -20,7 +21,6 @@ export function AuthProvider({ children }) {
     if (error || !data) {
       setProfile(null);
     } else {
-      // Achata empresa para manter compatibilidade com o código existente
       setProfile({
         id:        data.id,
         role:      data.role,
@@ -31,21 +31,29 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    // Sessão inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Carregar sessão inicial
+    const loadInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       const u = session?.user ?? null;
       setUser(u);
-      if (u) fetchProfile(u.id).finally(() => setLoading(false));
-      else    setLoading(false);
-    });
+      if (u) await fetchProfile(u.id);
+      setLoading(false);
+    };
 
-    // Listener de mudanças de auth
+    loadInitialSession();
+
+    // Listener de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        console.log("Auth event:", event); // para debug
         const u = session?.user ?? null;
         setUser(u);
-        if (u) await fetchProfile(u.id);
-        else    setProfile(null);
+        
+        if (u) {
+          await fetchProfile(u.id);
+        } else {
+          setProfile(null);
+        }
         setLoading(false);
       }
     );
@@ -53,7 +61,24 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const logout = () => supabase.auth.signOut();
+  // Logout melhorado
+  const logout = async () => {
+    try {
+      console.log("Tentando fazer logout...");
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      
+      if (error) {
+        console.error("Erro no signOut:", error);
+      } else {
+        console.log("Logout realizado com sucesso");
+        // Força limpeza do estado local
+        setUser(null);
+        setProfile(null);
+      }
+    } catch (err) {
+      console.error("Erro inesperado no logout:", err);
+    }
+  };
 
   return (
     <AuthContext.Provider value={{ user, profile, loading, logout }}>

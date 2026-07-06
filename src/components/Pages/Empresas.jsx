@@ -2,8 +2,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../supabase";
+import { useAuth } from "../context/AuthContext";   // ← Adicionado
 import fundoImage from "../../img/fundo.png";
-
 
 // ── Ícones ────────────────────────────────────────────────────
 const IconSearch    = () => (<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>);
@@ -58,6 +58,9 @@ function StatPill({ icon, value, label }) {
 // ── Componente principal ──────────────────────────────────────
 export default function Empresas() {
   const navigate = useNavigate();
+  const { profile } = useAuth();           // ← Adicionado
+  const isAdmin = profile?.role === "admin";
+
   const [empresas, setEmpresas] = useState([]);
   const [counts,   setCounts]   = useState({});
   const [loading,  setLoading]  = useState(true);
@@ -67,7 +70,6 @@ export default function Empresas() {
     const load = async () => {
       setLoading(true);
       try {
-        // 1) Carrega empresas
         const { data: emps } = await supabase
           .from("empresas")
           .select("*")
@@ -76,17 +78,9 @@ export default function Empresas() {
 
         if (!emps || emps.length === 0) { setLoading(false); return; }
 
-        // 2) Conta rochas por empresa (usando group by via rpc ou contagem individual)
-        const { data: rochasCount } = await supabase
-          .from("rochas")
-          .select("empresa_id");
+        const { data: rochasCount } = await supabase.from("rochas").select("empresa_id");
+        const { data: vagasCount } = await supabase.from("vagas").select("empresa_id").eq("ativa", true);
 
-        const { data: vagasCount } = await supabase
-          .from("vagas")
-          .select("empresa_id")
-          .eq("ativa", true);
-
-        // Monta mapa de contagens
         const c = {};
         emps.forEach(e => { c[e.id] = { rochas:0, vagas:0 }; });
         (rochasCount||[]).forEach(r => { if (c[r.empresa_id]) c[r.empresa_id].rochas += 1; });
@@ -116,12 +110,32 @@ export default function Empresas() {
 
       <div style={{ position:"relative", zIndex:10, maxWidth:"72rem", margin:"0 auto", padding:"7rem 1.5rem 5rem" }}>
 
-        {/* Cabeçalho */}
+        {/* Cabeçalho com botão */}
         <div style={{ marginBottom:"2.5rem" }}>
           <p style={{ fontFamily:"Orbitron,sans-serif", fontSize:"0.6rem", letterSpacing:"0.3em", textTransform:"uppercase", color:"#C9A96E", marginBottom:"0.5rem" }}>Marketplace</p>
           <div style={{ display:"flex", alignItems:"flex-end", justifyContent:"space-between", flexWrap:"wrap", gap:"1rem" }}>
             <h1 style={{ fontFamily:"Orbitron,sans-serif", fontSize:"2rem", fontWeight:700, color:"white", letterSpacing:"0.04em" }}>Empresas</h1>
-            {!loading && <p style={{ color:"rgba(255,255,255,0.25)", fontSize:"0.75rem" }}>{empresasFiltradas.length} {empresasFiltradas.length===1?"empresa":"empresas"}</p>}
+            
+            {isAdmin && (
+              <button
+                onClick={() => navigate("/cadastro-empresa")}
+                style={{ 
+                  background:"linear-gradient(135deg,#C9A96E,#a07840)", 
+                  color:"#0A0A0A", 
+                  fontWeight:600, 
+                  padding:"0.75rem 1.5rem", 
+                  borderRadius:"0.75rem", 
+                  border:"none", 
+                  cursor:"pointer",
+                  display:"flex",
+                  alignItems:"center",
+                  gap:"0.5rem",
+                  fontSize:"0.95rem"
+                }}
+              >
+                + Cadastrar Empresa
+              </button>
+            )}
           </div>
         </div>
 
@@ -164,18 +178,16 @@ export default function Empresas() {
   );
 }
 
-// ── Card de empresa ───────────────────────────────────────────
+// ── Card de empresa (sem alterações) ───────────────────────────────────────────
 function EmpresaCard({ empresa, rochas, vagas, onClick }) {
   const [hover, setHover] = useState(false);
   return (
     <div onClick={onClick} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
       style={{ borderRadius:"1rem", overflow:"hidden", cursor:"pointer", background:"#111111", border:hover?"1px solid rgba(201,169,110,0.35)":"1px solid rgba(255,255,255,0.06)", transform:hover?"translateY(-4px)":"translateY(0)", boxShadow:hover?"0 16px 48px rgba(0,0,0,0.5)":"0 2px 8px rgba(0,0,0,0.3)", transition:"all 0.3s" }}>
 
-      {/* Faixa decorativa */}
       <div style={{ height:"6px", background:hover?"linear-gradient(90deg,#C9A96E,#a07840)":"rgba(255,255,255,0.04)", transition:"background 0.3s" }}/>
 
       <div style={{ padding:"1.5rem" }}>
-        {/* Avatar + nome */}
         <div style={{ display:"flex", alignItems:"flex-start", gap:"1rem", marginBottom:"1rem" }}>
           <EmpresaAvatar nome={empresa.nome}/>
           <div style={{ flex:1, minWidth:0 }}>
@@ -190,10 +202,8 @@ function EmpresaCard({ empresa, rochas, vagas, onClick }) {
           </div>
         </div>
 
-        {/* Separador */}
         <div style={{ height:"1px", background:"rgba(255,255,255,0.05)", marginBottom:"1rem" }}/>
 
-        {/* Contadores + telefone */}
         <div style={{ display:"flex", alignItems:"center", gap:"0.75rem", flexWrap:"wrap" }}>
           <StatPill icon={<IconBox/>}       value={rochas} label={rochas===1?"rocha":"rochas"}/>
           <StatPill icon={<IconBriefcase/>} value={vagas}  label={vagas===1?"vaga":"vagas"}/>
@@ -204,7 +214,6 @@ function EmpresaCard({ empresa, rochas, vagas, onClick }) {
           )}
         </div>
 
-        {/* CTA */}
         <div style={{ marginTop:"1.25rem", display:"flex", alignItems:"center", gap:"0.375rem", fontSize:"0.7rem", letterSpacing:"0.1em", textTransform:"uppercase", color:hover?"#C9A96E":"rgba(255,255,255,0.2)", transition:"color 0.3s" }}>
           Ver perfil completo <IconArrow/>
         </div>
