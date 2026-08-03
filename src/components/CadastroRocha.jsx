@@ -358,12 +358,12 @@ export default function CadastroRocha() {
 
             {/* Botão */}
             <button type="submit" disabled={salvando||checandoDuplicata||(existeDuplicata&&!usarRochaExistente)}
-              style={{ padding:"0.875rem", borderRadius:"0.75rem", fontWeight:600, fontSize:"0.875rem", letterSpacing:"0.1em", textTransform:"uppercase", background:salvando||(existeDuplicata&&!usarRochaExistente)?"rgba(201,169,110,0.15)":"linear-gradient(135deg,#C9A96E,#a07840)", color:salvando||(existeDuplicata&&!usarRochaExistente)?"#C9A96E":"#0A0A0A", border:"none", cursor:(salvando||checandoDuplicata||(existeDuplicata&&!usarRochaExistente))?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:"0.5rem", opacity:(salvando||checandoDuplicata)&&!(existeDuplicata&&!usarRochaExistente)?0.7:1, boxShadow:salvando?"none":"0 0 24px rgba(201,169,110,0.2)" }}>
+              styl={{ padding:"0.875rem", borderRadius:"0.75rem", fontWeight:600, fontSize:"0.875rem", letterSpacing:"0.1em", textTransform:"uppercase", background:salvando||(existeDuplicata&&!usarRochaExistente)?"rgba(201,169,110,0.15)":"linear-gradient(135deg,#C9A96E,#a07840)", color:salvando||(existeDuplicata&&!usarRochaExistente)?"#C9A96E":"#0A0A0A", border:"none", cursor:(salvando||checandoDuplicata||(existeDuplicata&&!usarRochaExistente))?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:"0.5rem", opacity:(salvando||checandoDuplicata)&&!(existeDuplicata&&!usarRochaExistente)?0.7:1, boxShadow:salvando?"none":"0 0 24px rgba(201,169,110,0.2)" }}>
               {salvando ? <><IconSpinner/>{usarRochaExistente?"Atualizando...":"Cadastrando..."}</>
                 : existeDuplicata&&!usarRochaExistente ? "Selecione a rocha existente"
                 : usarRochaExistente ? "Adicionar ao estoque"
                 : "Cadastrar Rocha"}
-            </button>
+            </button>e
 
             {/* Status */}
             {status && (

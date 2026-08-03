@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../components/context/AuthContext";
-import logo from "../img/LogoAvantec.png";
+import homeIcon from "../img/home.png";
 
 export default function Navbar() {
   const { user, profile, logout } = useAuth();
@@ -9,17 +9,16 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   const isAdmin = profile?.role === "admin";
-  const isEmpresa = profile?.role === "empresa";
 
   const navLinks = useMemo(
     () => [
-      { to: "/lista",         label: "Rochas Ornamentais", show: true },
+      { to: "/lista",         label: "Rochas", show: true },
       { to: "/empresas",      label: "Empresas",           show: true },
       { to: "/servicos",      label: "Serviços",           show: true },
       { to: "/arquitetos",    label: "Arquitetos",         show: true },
       { to: "/construtoras",  label: "Construtoras",       show: true },
       { to: "/transportadores",label: "Transportadores",   show: true },
-      { to: "/vagas",         label: "Vagas de Emprego",   show: true },
+      { to: "/vagas",         label: "Vagas",   show: true },
     ],
     []
   );
@@ -37,10 +36,14 @@ export default function Navbar() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-black/10 backdrop-blur font-navbar">
       <div className="max-w-7xl mx-auto flex h-20 items-center px-4 md:px-8 justify-between w-full">
         
-        {/* ESQUERDA - HOME */}
-        <div className="flex-shrink-0">
-          <NavLink to="/" className={linkClass}>
-            Home
+        {/* ESQUERDA - HOME (puxado mais para a esquerda) */}
+        <div className="flex-shrink-0 -ml-2 md:-ml-6">
+          <NavLink to="/" className="flex items-center">
+            <img 
+              src={homeIcon} 
+              alt="Home" 
+              className="h-9 md:h-10 w-auto transition-all hover:scale-110" 
+            />
           </NavLink>
         </div>
 
