@@ -1,5 +1,5 @@
 // src/components/Pages/Home.jsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../supabase";
 import { useAuth } from "../context/AuthContext";

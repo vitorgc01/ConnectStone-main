@@ -50,7 +50,7 @@ function InfoBox({ label, value, highlight }) {
 
 // ── Componente principal ──────────────────────────────────────
 export default function ListaRochas() {
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const isAdmin   = profile?.role === "admin";
   const isEmpresa = profile?.role === "empresa";

@@ -4,11 +4,11 @@ import { useAuth } from "../components/context/AuthContext";
 import homeIcon from "../img/home.png";
 
 export default function Navbar() {
-  const { user, profile, logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
-  const isAdmin = profile?.role === "admin";
+  // const isAdmin = profile?.role === "admin";
 
   const navLinks = useMemo(
     () => [

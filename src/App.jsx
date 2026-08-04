@@ -17,15 +17,15 @@ import EmpresaPerfil from "./components/Pages/EmpresaPerfil";
 // import TesteUpload from "./teste";
 
 /** Rota que exige usuário logado */
-function PrivateRoute({ children }) {
-  const { user, loading } = useAuth();
+// function PrivateRoute({ children }) {
+//   const { user, loading } = useAuth();
 
-  if (loading) {
-    return <div className="p-6">Carregando...</div>;
-  }
+//   if (loading) {
+//     return <div className="p-6">Carregando...</div>;
+//   }
 
-  return user ? children : <Navigate to="/login" replace />;
-}
+//   return user ? children : <Navigate to="/login" replace />;
+// }
 
 /** Rota exclusiva de admin */
 function AdminRoute({ children }) {
