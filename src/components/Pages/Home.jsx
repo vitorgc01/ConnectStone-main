@@ -81,7 +81,7 @@ const categorias = [
 ];
 
 export default function Home() {
-  const { profile } = useAuth();
+  // const { profile } = useAuth();
   const navigate = useNavigate();
   const [avisos, setAvisos] = useState([]);
   const [visible, setVisible] = useState(false);
