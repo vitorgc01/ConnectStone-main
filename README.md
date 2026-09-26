@@ -33,7 +33,7 @@ Depois publique a Edge Function responsável pela criação administrativa de us
 supabase functions deploy admin-create-user
 ```
 
-A função usa `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` apenas no ambiente seguro do Supabase. Nunca coloque a service role em arquivos `VITE_*` ou no navegador.
+A função usa o contexto seguro fornecido por `@supabase/server`: chamadas exigem a sessão de um usuário e operações administrativas usam `ctx.supabaseAdmin` somente dentro da Edge Function. Nunca coloque uma chave `sb_secret_*` em arquivos `VITE_*` ou no navegador.
 
 ## GitHub Pages
 
