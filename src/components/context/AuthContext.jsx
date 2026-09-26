@@ -45,8 +45,7 @@ export function AuthProvider({ children }) {
     // Listener de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("Auth event:", event); // para debug
-        const u = session?.user ?? null;
+      const u = session?.user ?? null;
         setUser(u);
         
         if (u) {
@@ -64,14 +63,11 @@ export function AuthProvider({ children }) {
   // Logout melhorado
   const logout = async () => {
     try {
-      console.log("Tentando fazer logout...");
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      const { error } = await supabase.auth.signOut();
       
       if (error) {
         console.error("Erro no signOut:", error);
       } else {
-        console.log("Logout realizado com sucesso");
-        // Força limpeza do estado local
         setUser(null);
         setProfile(null);
       }

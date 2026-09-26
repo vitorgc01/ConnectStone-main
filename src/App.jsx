@@ -1,19 +1,22 @@
 // src/App.jsx
 
+import { lazy, Suspense } from "react";
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./components/context/AuthContext";
 
 import Navbar from "./components/Navbar";
-import Home from "./components/Pages/Home";
-import Login from "./components/Login";
-import ListaRochas from "./components/ListaRochas";
-import CadastroRocha from "./components/CadastroRocha";
-import CadastroEmpresa from "./components/CadastroEmpresa";
-import CadastroUsuario from "./components/CadastroUsuario";
-import Estoque from "./components/Pages/Estoque";
-import Vagas from "./components/Pages/Vagas";
-import Empresas from "./components/Pages/Empresas";
-import EmpresaPerfil from "./components/Pages/EmpresaPerfil";
+
+const Home = lazy(() => import("./components/Pages/Home"));
+const Login = lazy(() => import("./components/Login"));
+const ListaRochas = lazy(() => import("./components/ListaRochas"));
+const CadastroRocha = lazy(() => import("./components/CadastroRocha"));
+const CadastroEmpresa = lazy(() => import("./components/CadastroEmpresa"));
+const CadastroUsuario = lazy(() => import("./components/CadastroUsuario"));
+const Estoque = lazy(() => import("./components/Pages/Estoque"));
+const Vagas = lazy(() => import("./components/Pages/Vagas"));
+const Empresas = lazy(() => import("./components/Pages/Empresas"));
+const EmpresaPerfil = lazy(() => import("./components/Pages/EmpresaPerfil"));
+const EmBreve = lazy(() => import("./components/Pages/EmBreve"));
 // import TesteUpload from "./teste";
 
 /** Rota que exige usuário logado */
@@ -35,11 +38,6 @@ function AdminRoute({ children }) {
     return <div className="p-6">Carregando...</div>;
   }
 
-  // Aguarda o profile carregar
-  if (user && profile == null) {
-    return <div className="p-6">Carregando perfil...</div>;
-  }
-
   return user && profile?.role === "admin"
     ? children
     : <Navigate to="/" replace />;
@@ -51,11 +49,6 @@ function EmpresaOuAdminRoute({ children }) {
 
   if (loading) {
     return <div className="p-6">Carregando...</div>;
-  }
-
-  // Aguarda o profile carregar
-  if (user && profile == null) {
-    return <div className="p-6">Carregando perfil...</div>;
   }
 
   if (
@@ -71,9 +64,10 @@ function EmpresaOuAdminRoute({ children }) {
 export default function App() {
   return (
     <AuthProvider>
-      <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <HashRouter>
         <Navbar />
 
+        <Suspense fallback={<div className="min-h-screen bg-black p-6 pt-28 text-white">Carregando...</div>}>
         <Routes>
           {/* Públicas */}
           <Route path="/" element={<Home />} />
@@ -102,6 +96,15 @@ export default function App() {
             path="/empresa/:id"
             element={<EmpresaPerfil />}
           />
+
+          {[
+            "/servicos",
+            "/arquitetos",
+            "/construtoras",
+            "/transportadores",
+          ].map((path) => (
+            <Route key={path} path={path} element={<EmBreve />} />
+          ))}
 
           {/* <Route
             path="/teste-upload"
@@ -151,6 +154,7 @@ export default function App() {
             element={<Navigate to="/" replace />}
           />
         </Routes>
+        </Suspense>
       </HashRouter>
     </AuthProvider>
   );

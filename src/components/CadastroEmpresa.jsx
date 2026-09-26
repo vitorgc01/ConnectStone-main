@@ -68,15 +68,19 @@ export default function CadastroEmpresa() {
   const handleSubmit = async (e) => {
     e.preventDefault(); setStatus(""); setStatusType("");
     if (senha !== confirmarSenha) { setStatus("As senhas não coincidem."); setStatusType("error"); return; }
-    if (senha.length < 6) { setStatus("Mínimo 6 caracteres."); setStatusType("error"); return; }
+    if (senha.length < 8) { setStatus("Mínimo 8 caracteres."); setStatusType("error"); return; }
     setSalvando(true);
     try {
-      const { data: emp, error: empErr } = await supabase.from("empresas").insert({ nome, endereco, telefone: telefone||null, cnpj: cnpj||null }).select().single();
-      if (empErr) throw empErr;
-      const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password: senha });
-      if (authErr) throw authErr;
-      const { error: profErr } = await supabase.from("usuarios").insert({ id: authData.user.id, role: "empresa", empresa_id: emp.id });
-      if (profErr) throw profErr;
+      const { data, error } = await supabase.functions.invoke("admin-create-user", {
+        body: {
+          email,
+          password: senha,
+          role: "empresa",
+          empresa: { nome, endereco, telefone, cnpj },
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       setSucesso(true);
       setNome(""); setEndereco(""); setTelefone(""); setCnpj(""); setEmail(""); setSenha(""); setConfirmarSenha("");
     } catch (err) {
@@ -129,11 +133,11 @@ export default function CadastroEmpresa() {
             <SectionDivider step="2" label="Credenciais de Acesso"/>
             <Field label="E-mail"><IconInput icon={<IconMail/>} type="email" placeholder="empresa@email.com" value={email} onChange={e=>setEmail(e.target.value)} required/></Field>
             <Field label="Senha">
-              <IconInput icon={<IconLock/>} type={mostrarSenha?"text":"password"} placeholder="Mínimo 6 caracteres" value={senha} onChange={e=>setSenha(e.target.value)} required minLength={6} rightSlot={<button type="button" onClick={()=>setMostrarSenha(v=>!v)} style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.25)" }}><IconEye off={mostrarSenha}/></button>}/>
+              <IconInput icon={<IconLock/>} type={mostrarSenha?"text":"password"} placeholder="Mínimo 8 caracteres" value={senha} onChange={e=>setSenha(e.target.value)} required minLength={8} rightSlot={<button type="button" onClick={()=>setMostrarSenha(v=>!v)} style={{ background:"none", border:"none", cursor:"pointer", color:"rgba(255,255,255,0.25)" }}><IconEye off={mostrarSenha}/></button>}/>
               <PasswordStrength senha={senha}/>
             </Field>
             <Field label="Confirmar senha">
-              <IconInput icon={<IconLock/>} type={mostrarSenha?"text":"password"} placeholder="Repita a senha" value={confirmarSenha} onChange={e=>setConfirmarSenha(e.target.value)} required minLength={6} rightSlot={confirmarSenha && <span style={{ color:confirmarSenha===senha?"#4ade80":"#f87171" }}>{confirmarSenha===senha?<IconCheck/>:<IconWarn/>}</span>}/>
+              <IconInput icon={<IconLock/>} type={mostrarSenha?"text":"password"} placeholder="Repita a senha" value={confirmarSenha} onChange={e=>setConfirmarSenha(e.target.value)} required minLength={8} rightSlot={confirmarSenha && <span style={{ color:confirmarSenha===senha?"#4ade80":"#f87171" }}>{confirmarSenha===senha?<IconCheck/>:<IconWarn/>}</span>}/>
             </Field>
             {status && statusType==="error" && <div style={{ borderRadius:"0.75rem", padding:"1rem", display:"flex", alignItems:"center", gap:"0.75rem", background:"rgba(248,113,113,0.08)", border:"1px solid rgba(248,113,113,0.2)", color:"#f87171", fontSize:"0.875rem" }}><IconWarn/> {status}</div>}
             <button type="submit" disabled={salvando} style={{ padding:"0.875rem", borderRadius:"0.75rem", fontWeight:600, fontSize:"0.875rem", letterSpacing:"0.1em", textTransform:"uppercase", background:salvando?"rgba(201,169,110,0.15)":"linear-gradient(135deg,#C9A96E,#a07840)", color:salvando?"#C9A96E":"#0A0A0A", border:"none", cursor:salvando?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:"0.5rem", opacity:salvando?0.6:1 }}>

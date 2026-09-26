@@ -293,8 +293,8 @@ export default function CadastroUsuario() {
       setStatusType("error");
       return;
     }
-    if (senha.length < 6) {
-      setStatus("A senha deve ter pelo menos 6 caracteres.");
+    if (senha.length < 8) {
+      setStatus("A senha deve ter pelo menos 8 caracteres.");
       setStatusType("error");
       return;
     }
@@ -307,17 +307,16 @@ export default function CadastroUsuario() {
     setSalvando(true);
 
     try {
-      // 1) Cria o usuário no Supabase Auth
-      const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password: senha });
-      if (authErr) throw authErr;
-      const uid = authData.user.id;
-
-      // 2) Salva perfil na tabela usuarios
-      const payload = role === "empresa"
-        ? { id: uid, role, empresa_id: companyId }
-        : { id: uid, role };
-      const { error: profErr } = await supabase.from("usuarios").insert(payload);
-      if (profErr) throw profErr;
+      const { data, error } = await supabase.functions.invoke("admin-create-user", {
+        body: {
+          email,
+          password: senha,
+          role,
+          empresaId: role === "empresa" ? companyId : undefined,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       // Encontra nome da empresa para exibir no sucesso
       if (role === "empresa") {
@@ -338,7 +337,7 @@ export default function CadastroUsuario() {
       let msg = "Erro ao criar usuário.";
       if (err.message?.includes("already registered")) msg = "Este e-mail já está em uso.";
       else if (err.message?.includes("invalid")) msg = "E-mail inválido.";
-      else if (err.message?.includes("weak") || err.message?.includes("password")) msg = "Senha muito fraca (mín. 6 caracteres).";
+      else if (err.message?.includes("weak") || err.message?.includes("password")) msg = "Senha muito fraca (mín. 8 caracteres).";
       setStatus(msg);
       setStatusType("error");
     } finally {
@@ -605,11 +604,11 @@ export default function CadastroUsuario() {
                   <IconInput
                     icon={<IconLock />}
                     type={mostrarSenha ? "text" : "password"}
-                    placeholder="Mínimo 6 caracteres"
+                    placeholder="Mínimo 8 caracteres"
                     value={senha}
                     onChange={(e) => setSenha(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={8}
                     rightSlot={
                       <button
                         type="button"
@@ -631,7 +630,7 @@ export default function CadastroUsuario() {
                     value={confirmarSenha}
                     onChange={(e) => setConfirmarSenha(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={8}
                     rightSlot={
                       confirmarSenha && (
                         <span style={{ color: confirmarSenha === senha ? "#4ade80" : "#f87171" }}>

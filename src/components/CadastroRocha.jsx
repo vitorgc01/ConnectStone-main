@@ -118,16 +118,31 @@ export default function CadastroRocha() {
   // ── Preview imagem ────────────────────────────────────────
   const handleImagemChange = (e) => {
     const file = e.target.files[0];
+    if (file && !file.type.startsWith("image/")) {
+      setStatus("Selecione um arquivo de imagem válido.");
+      setStatusType("error");
+      e.target.value = "";
+      return;
+    }
+    if (file && file.size > 5 * 1024 * 1024) {
+      setStatus("A imagem deve ter no máximo 5 MB.");
+      setStatusType("error");
+      e.target.value = "";
+      return;
+    }
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setImagem(file || null);
     setPreviewUrl(file ? URL.createObjectURL(file) : null);
   };
   const removerImagem = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setImagem(null); setPreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   // ── Reset ─────────────────────────────────────────────────
   const resetForm = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (isAdmin) setEmpresaId("");
     setNome(""); setTipo(""); setAcabamento(""); setEntradaInicial("");
     setImagem(null); setPreviewUrl(null);
@@ -139,10 +154,14 @@ export default function CadastroRocha() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus(""); setStatusType(""); setSalvando(true); setUploadProgress(0);
+    let uploadedFilePath = null;
+    let novaRochaId = null;
     try {
       if (!finalEmpresaId) { setStatus("Selecione a empresa."); setStatusType("error"); return; }
       const nomeT     = nome.trim();
       const estoqueM2 = Number(entradaInicial || 0);
+      if (!nomeT) { setStatus("Informe o nome da rocha."); setStatusType("error"); return; }
+      if (!Number.isFinite(estoqueM2) || estoqueM2 < 0) { setStatus("Informe um estoque válido."); setStatusType("error"); return; }
 
       // ── FLUXO A: adicionar estoque em rocha existente ─────
       if (usarRochaExistente) {
@@ -167,10 +186,11 @@ export default function CadastroRocha() {
       let foto_url = "";
       if (imagem) {
         setUploadProgress(20);
-        const ext      = imagem.name.split(".").pop();
-        const filePath = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const ext = imagem.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+        const filePath = `${finalEmpresaId}/${crypto.randomUUID()}.${ext}`;
         const { error: upErr } = await supabase.storage.from("rochas").upload(filePath, imagem);
         if (upErr) throw upErr;
+        uploadedFilePath = filePath;
         const { data: urlData } = supabase.storage.from("rochas").getPublicUrl(filePath);
         foto_url = urlData.publicUrl;
         setUploadProgress(60);
@@ -184,7 +204,7 @@ export default function CadastroRocha() {
           tipo:        tipo.trim(),
           acabamento:  acabamento.trim(),
           empresa_id:  finalEmpresaId,
-          estoque_m2:  estoqueM2,
+          estoque_m2:  0,
           foto_url,
           criado_por:  user?.id || null,
         })
@@ -192,24 +212,30 @@ export default function CadastroRocha() {
         .single();
 
       if (insertErr) throw insertErr;
+      novaRochaId = novaRocha.id;
       setUploadProgress(80);
 
-      // Registra movimentação inicial
-      if (estoqueM2 > 0 && user?.id) {
-        await supabase.from("movimentacoes").insert({
-          rocha_id:  novaRocha.id,
-          tipo:      "entrada",
-          m2:        estoqueM2,
-          obs:       "Entrada inicial",
-          user_id:   user.id,
-          criado_em: new Date().toISOString(),
+      // O saldo e o histórico são alterados juntos dentro da função SQL.
+      if (estoqueM2 > 0) {
+        const { error: estoqueError } = await supabase.rpc("movimentar_estoque", {
+          p_rocha_id: novaRocha.id,
+          p_tipo: "entrada",
+          p_m2: estoqueM2,
+          p_obs: "Entrada inicial",
         });
+        if (estoqueError) throw estoqueError;
       }
 
       setUploadProgress(100);
       setStatus("Rocha cadastrada com sucesso!"); setStatusType("success");
       resetForm();
     } catch (err) {
+      if (novaRochaId) {
+        await supabase.from("rochas").delete().eq("id", novaRochaId);
+      }
+      if (uploadedFilePath) {
+        await supabase.storage.from("rochas").remove([uploadedFilePath]);
+      }
       console.error("Erro ao salvar rocha:", err);
       setStatus(err.message || "Erro inesperado ao salvar rocha."); setStatusType("error");
     } finally {

@@ -120,7 +120,7 @@ export default function Estoque() {
   // ── Movimentar estoque ────────────────────────────────────────
   const movimentar = async (rochaId, tipo, m2, obs = "") => {
     const valor = Number(m2);
-    if (!valor || valor <= 0 || !user?.uid) return;
+    if (!valor || valor <= 0 || !user?.id) return;
 
     // Usa a função atômica criada no schema SQL
     const { error } = await supabase.rpc("movimentar_estoque", {

@@ -86,7 +86,7 @@ create table if not exists public.avisos (
 -- ============================================================
 create or replace function public.get_my_profile()
 returns public.usuarios
-language sql security definer stable
+language sql security definer stable set search_path = ''
 as $$
   select * from public.usuarios where id = auth.uid();
 $$;
@@ -104,7 +104,7 @@ alter table public.avisos       enable row level security;
 
 -- ── Helpers de role ──────────────────────────────────────────
 create or replace function public.is_admin()
-returns boolean language sql security definer stable as $$
+returns boolean language sql security definer stable set search_path = '' as $$
   select exists (
     select 1 from public.usuarios
     where id = auth.uid() and role = 'admin'
@@ -112,7 +112,7 @@ returns boolean language sql security definer stable as $$
 $$;
 
 create or replace function public.my_empresa_id()
-returns uuid language sql security definer stable as $$
+returns uuid language sql security definer stable set search_path = '' as $$
   select empresa_id from public.usuarios where id = auth.uid();
 $$;
 
@@ -136,20 +136,13 @@ create policy "empresas_delete_admin"
 -- ────────────────────────────────────────────────────────────
 --  USUÁRIOS
 -- ────────────────────────────────────────────────────────────
--- Usuário logado vê qualquer perfil; admin vê tudo
-create policy "usuarios_select"
+-- Usuário vê apenas o próprio perfil; admin vê tudo
+create policy "usuarios_select_own_or_admin"
   on public.usuarios for select
-  using (auth.uid() is not null);
-
--- Usuário edita o próprio perfil; admin edita qualquer um
-create policy "usuarios_update"
-  on public.usuarios for update
   using (auth.uid() = id or public.is_admin());
 
--- Só admin insere perfis (criação via backend/function)
-create policy "usuarios_insert_admin"
-  on public.usuarios for insert
-  with check (public.is_admin() or auth.uid() = id);
+-- Não há INSERT/UPDATE pelo cliente. Criação e alteração de roles passam por
+-- uma função de servidor usando a service role.
 
 -- ────────────────────────────────────────────────────────────
 --  ROCHAS
@@ -225,9 +218,14 @@ create policy "mov_no_delete" on public.movimentacoes for delete using (false);
 -- ────────────────────────────────────────────────────────────
 --  VAGAS
 -- ────────────────────────────────────────────────────────────
--- Leitura pública das vagas ativas
-create policy "vagas_select_public"
-  on public.vagas for select using (true);
+-- Vagas ativas são públicas; inativas só aparecem para admin ou para a dona.
+create policy "vagas_select_visible"
+  on public.vagas for select
+  using (
+    ativa = true
+    or public.is_admin()
+    or empresa_id = public.my_empresa_id()
+  );
 
 -- Admin insere qualquer vaga
 create policy "vagas_insert_admin"
@@ -276,15 +274,37 @@ create or replace function public.movimentar_estoque(
 )
 returns void
 language plpgsql security definer
+set search_path = ''
 as $$
 declare
   v_novo_estoque numeric;
+  v_empresa_id uuid;
 begin
+  if auth.uid() is null then
+    raise exception 'Autenticação obrigatória.' using errcode = '42501';
+  end if;
+
+  if p_tipo not in ('entrada', 'saida') then
+    raise exception 'Tipo de movimentação inválido.' using errcode = '22023';
+  end if;
+
+  if p_m2 is null or p_m2 <= 0 then
+    raise exception 'A quantidade deve ser maior que zero.' using errcode = '22023';
+  end if;
+
   -- Bloqueia a linha para update
-  select estoque_m2 into v_novo_estoque
+  select estoque_m2, empresa_id into v_novo_estoque, v_empresa_id
   from public.rochas
   where id = p_rocha_id
   for update;
+
+  if not found then
+    raise exception 'Rocha não encontrada.' using errcode = 'P0002';
+  end if;
+
+  if not public.is_admin() and v_empresa_id is distinct from public.my_empresa_id() then
+    raise exception 'Sem permissão para movimentar esta rocha.' using errcode = '42501';
+  end if;
 
   if p_tipo = 'entrada' then
     v_novo_estoque := v_novo_estoque + p_m2;
@@ -293,8 +313,6 @@ begin
     if v_novo_estoque < 0 then
       raise exception 'Saldo insuficiente para saída.';
     end if;
-  else
-    raise exception 'Tipo inválido: %', p_tipo;
   end if;
 
   -- Atualiza o estoque
@@ -308,6 +326,10 @@ begin
 end;
 $$;
 
+revoke all on function public.movimentar_estoque(uuid, text, numeric, text) from public;
+revoke all on function public.movimentar_estoque(uuid, text, numeric, text) from anon;
+grant execute on function public.movimentar_estoque(uuid, text, numeric, text) to authenticated;
+
 -- ============================================================
 --  STORAGE BUCKET para fotos de rochas
 -- ============================================================
@@ -320,12 +342,23 @@ create policy "rochas_storage_select"
   on storage.objects for select
   using (bucket_id = 'rochas');
 
--- Usuários autenticados fazem upload
-create policy "rochas_storage_insert"
-  on storage.objects for insert
-  with check (bucket_id = 'rochas' and auth.uid() is not null);
+-- Novos arquivos usam o caminho empresa_id/arquivo.ext.
+create policy "rochas_storage_insert_owner"
+  on storage.objects for insert to authenticated
+  with check (
+    bucket_id = 'rochas'
+    and (
+      public.is_admin()
+      or (storage.foldername(name))[1] = public.my_empresa_id()::text
+    )
+  );
 
--- Admin ou dono do arquivo pode deletar
-create policy "rochas_storage_delete"
-  on storage.objects for delete
-  using (bucket_id = 'rochas' and auth.uid() is not null);
+create policy "rochas_storage_delete_owner"
+  on storage.objects for delete to authenticated
+  using (
+    bucket_id = 'rochas'
+    and (
+      public.is_admin()
+      or (storage.foldername(name))[1] = public.my_empresa_id()::text
+    )
+  );
